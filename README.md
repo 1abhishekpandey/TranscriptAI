@@ -2,6 +2,8 @@
 
 A modern Android application that enables seamless YouTube video transcript extraction and AI-powered analysis. Download subtitles, view them instantly, and export to your favorite AI platforms.
 
+**Check out this:** [FastScribe](https://github.com/1abhishekpandey/FastScribe/) - Fast parallel video-to-text transcription powered by OpenAI's Whisper AI for working on PC
+
 ## Features
 
 - **YouTube Transcript Download**: Extract subtitles from any YouTube video using direct InnerTube API integration
