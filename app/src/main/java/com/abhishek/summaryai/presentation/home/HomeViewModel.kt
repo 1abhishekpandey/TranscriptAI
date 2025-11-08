@@ -27,10 +27,19 @@ class HomeViewModel @Inject constructor(
     private val _videoUrl = MutableStateFlow("")
     val videoUrl: StateFlow<String> = _videoUrl.asStateFlow()
 
+    // Selected language (default is English)
+    private val _selectedLanguage = MutableStateFlow(SubtitleLanguage.ENGLISH)
+    val selectedLanguage: StateFlow<SubtitleLanguage> = _selectedLanguage.asStateFlow()
+
+    // Language selection expansion state
+    private val _languageExpanded = MutableStateFlow(false)
+    val languageExpanded: StateFlow<Boolean> = _languageExpanded.asStateFlow()
+
     private var currentSubtitle: String = ""
 
     init {
         Logger.logI("HomeViewModel: Initialized")
+        Logger.logD("HomeViewModel: Default language: ${SubtitleLanguage.ENGLISH.displayName}")
     }
 
     /**
@@ -48,6 +57,12 @@ class HomeViewModel @Inject constructor(
             }
             is HomeUiEvent.UpdateVideoUrl -> {
                 updateVideoUrl(event.url)
+            }
+            is HomeUiEvent.SelectLanguage -> {
+                selectLanguage(event.language)
+            }
+            is HomeUiEvent.ToggleLanguageExpansion -> {
+                toggleLanguageExpansion()
             }
         }
     }
@@ -73,8 +88,9 @@ class HomeViewModel @Inject constructor(
                 _uiState.value = HomeUiState.Loading("Parsing subtitles...")
                 Logger.logV("HomeViewModel: State changed to Loading - Parsing subtitles")
 
-                // Call use case
-                val result = downloadSubtitlesUseCase(videoUrl)
+                // Build language preferences and call use case
+                val languagePreferences = buildLanguagePreferences()
+                val result = downloadSubtitlesUseCase(videoUrl, languagePreferences)
 
                 // Handle result
                 when (result) {
@@ -127,10 +143,35 @@ class HomeViewModel @Inject constructor(
     }
 
     /**
+     * Select a language
+     */
+    private fun selectLanguage(language: SubtitleLanguage) {
+        Logger.logI("HomeViewModel: Language selected: ${language.displayName}")
+        _selectedLanguage.value = language
+    }
+
+    /**
+     * Toggle language selection expansion
+     */
+    private fun toggleLanguageExpansion() {
+        _languageExpanded.value = !_languageExpanded.value
+        Logger.logD("HomeViewModel: Language selection ${if (_languageExpanded.value) "expanded" else "collapsed"}")
+    }
+
+    /**
      * Get the current subtitle text for clipboard operations
      */
     fun getCurrentSubtitle(): String {
         return currentSubtitle
+    }
+
+    /**
+     * Build language preferences list based on user selection
+     */
+    private fun buildLanguagePreferences(): List<String> {
+        val preferences = listOf(_selectedLanguage.value.code)
+        Logger.logD("HomeViewModel: Language preference: ${preferences.joinToString(", ")}")
+        return preferences
     }
 
     override fun onCleared() {

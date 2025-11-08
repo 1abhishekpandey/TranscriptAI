@@ -52,4 +52,23 @@ sealed class HomeUiEvent {
      * User updated the video URL input
      */
     data class UpdateVideoUrl(val url: String) : HomeUiEvent()
+
+    /**
+     * User selected a language
+     */
+    data class SelectLanguage(val language: SubtitleLanguage) : HomeUiEvent()
+
+    /**
+     * User toggled language selection expansion
+     */
+    data object ToggleLanguageExpansion : HomeUiEvent()
+}
+
+/**
+ * Available subtitle languages
+ */
+enum class SubtitleLanguage(val code: String, val displayName: String) {
+    ENGLISH("en", "English"),
+    HINDI("hi", "Hindi"),
+    AUTO("auto", "Auto-generated")
 }

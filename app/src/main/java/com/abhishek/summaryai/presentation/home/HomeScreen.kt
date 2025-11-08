@@ -4,13 +4,20 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.widget.Toast
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -28,6 +35,8 @@ fun HomeScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val videoUrl by viewModel.videoUrl.collectAsState()
+    val selectedLanguage by viewModel.selectedLanguage.collectAsState()
+    val languageExpanded by viewModel.languageExpanded.collectAsState()
     val context = LocalContext.current
 
     Logger.logV("HomeScreen: Recomposing with state: ${uiState::class.simpleName}")
@@ -58,6 +67,15 @@ fun HomeScreen(
                 placeholder = { Text("Enter YouTube video URL or ID") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
+                enabled = uiState !is HomeUiState.Loading
+            )
+
+            // Language Selection Section
+            CollapsibleLanguageSelection(
+                selectedLanguage = selectedLanguage,
+                isExpanded = languageExpanded,
+                onExpandToggle = { viewModel.onEvent(HomeUiEvent.ToggleLanguageExpansion) },
+                onLanguageSelect = { viewModel.onEvent(HomeUiEvent.SelectLanguage(it)) },
                 enabled = uiState !is HomeUiState.Loading
             )
 
@@ -235,6 +253,130 @@ private fun ErrorContent(message: String) {
                 color = MaterialTheme.colorScheme.onErrorContainer
             )
         }
+    }
+}
+
+@Composable
+private fun CollapsibleLanguageSelection(
+    selectedLanguage: SubtitleLanguage,
+    isExpanded: Boolean,
+    onExpandToggle: () -> Unit,
+    onLanguageSelect: (SubtitleLanguage) -> Unit,
+    enabled: Boolean
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.secondaryContainer
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp)
+        ) {
+            // Header - Always visible (clickable to expand/collapse)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(enabled = enabled) { onExpandToggle() }
+                    .padding(vertical = 4.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(
+                        text = "Language",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+
+                    // Compact view - show selected language with badge style
+                    Text(
+                        text = selectedLanguage.displayName,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+
+                // Expand/Collapse icon
+                Icon(
+                    imageVector = Icons.Default.ArrowDropDown,
+                    contentDescription = if (isExpanded) "Collapse" else "Expand",
+                    modifier = Modifier.rotate(if (isExpanded) 180f else 0f),
+                    tint = MaterialTheme.colorScheme.onSecondaryContainer
+                )
+            }
+
+            // Expandable content
+            AnimatedVisibility(
+                visible = isExpanded,
+                enter = expandVertically(),
+                exit = shrinkVertically()
+            ) {
+                Column(
+                    modifier = Modifier.padding(top = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = "Select preferred language",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.8f),
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+
+                    // Language options with radio buttons
+                    SubtitleLanguage.values().forEach { language ->
+                        LanguageOption(
+                            language = language,
+                            isSelected = selectedLanguage == language,
+                            onSelect = { onLanguageSelect(language) },
+                            enabled = enabled
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun LanguageOption(
+    language: SubtitleLanguage,
+    isSelected: Boolean,
+    onSelect: () -> Unit,
+    enabled: Boolean
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(enabled = enabled) { onSelect() }
+            .padding(vertical = 4.dp, horizontal = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        RadioButton(
+            selected = isSelected,
+            onClick = { onSelect() },
+            enabled = enabled,
+            colors = RadioButtonDefaults.colors(
+                selectedColor = MaterialTheme.colorScheme.primary,
+                unselectedColor = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.6f)
+            )
+        )
+        Spacer(modifier = Modifier.width(12.dp))
+        Text(
+            text = language.displayName,
+            style = MaterialTheme.typography.bodyLarge,
+            color = if (isSelected) {
+                MaterialTheme.colorScheme.primary
+            } else {
+                MaterialTheme.colorScheme.onSecondaryContainer
+            },
+            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
+        )
     }
 }
 

@@ -18,9 +18,13 @@ class SubtitleRepositoryImpl @Inject constructor(
     private val youtubeSubtitleDownloader: YouTubeSubtitleDownloader
 ) : SubtitleRepository {
 
-    override suspend fun downloadSubtitles(videoUrl: String): Result<SubtitleResult> = withContext(Dispatchers.IO) {
+    override suspend fun downloadSubtitles(
+        videoUrl: String,
+        languagePreferences: List<String>
+    ): Result<SubtitleResult> = withContext(Dispatchers.IO) {
         try {
             Logger.logI("SubtitleRepositoryImpl: Starting subtitle download for: $videoUrl")
+            Logger.logD("SubtitleRepositoryImpl: Language preferences: ${languagePreferences.joinToString(", ")}")
 
             // Extract video ID from URL for logging
             val videoId = extractVideoId(videoUrl)
@@ -30,7 +34,7 @@ class SubtitleRepositoryImpl @Inject constructor(
             Logger.logV("SubtitleRepositoryImpl: Calling YouTube subtitle downloader extension...")
             val extensionResult = youtubeSubtitleDownloader.downloadSubtitles(
                 url = videoUrl,
-                languagePreferences = listOf("en", "hi", "auto") // Default language preferences
+                languagePreferences = languagePreferences
             )
 
             // Map extension result to app's domain model

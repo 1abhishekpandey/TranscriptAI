@@ -16,10 +16,15 @@ class DownloadSubtitlesUseCase @Inject constructor(
     /**
      * Execute the subtitle download operation
      * @param videoUrl YouTube video URL or ID
+     * @param languagePreferences List of preferred language codes (default: ["en"])
      * @return Result containing subtitle data or error
      */
-    suspend operator fun invoke(videoUrl: String): Result<SubtitleResult> {
+    suspend operator fun invoke(
+        videoUrl: String,
+        languagePreferences: List<String> = listOf("en")
+    ): Result<SubtitleResult> {
         Logger.logI("DownloadSubtitlesUseCase: Starting subtitle download for URL: $videoUrl")
+        Logger.logD("DownloadSubtitlesUseCase: Language preferences: ${languagePreferences.joinToString(", ")}")
 
         // Validate input
         if (videoUrl.isBlank()) {
@@ -28,7 +33,7 @@ class DownloadSubtitlesUseCase @Inject constructor(
         }
 
         Logger.logD("DownloadSubtitlesUseCase: Calling repository to download subtitles")
-        val result = repository.downloadSubtitles(videoUrl)
+        val result = repository.downloadSubtitles(videoUrl, languagePreferences)
 
         when (result) {
             is Result.Success -> {
