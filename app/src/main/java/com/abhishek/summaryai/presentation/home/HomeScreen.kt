@@ -69,24 +69,6 @@ fun HomeScreen(
                     titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
                 )
             )
-        },
-        floatingActionButton = {
-            // Show FAB only when there's content to clear (Success or Error states)
-            if (uiState is HomeUiState.Success || uiState is HomeUiState.Error) {
-                FloatingActionButton(
-                    onClick = {
-                        Logger.logD("HomeScreen: Clear button clicked")
-                        viewModel.onEvent(HomeUiEvent.ClearContent)
-                    },
-                    containerColor = MaterialTheme.colorScheme.errorContainer,
-                    contentColor = MaterialTheme.colorScheme.onErrorContainer
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Clear,
-                        contentDescription = "Clear all content"
-                    )
-                }
-            }
         }
     ) { paddingValues ->
         Column(
@@ -96,6 +78,11 @@ fun HomeScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            // Idle prompt message - shown at top when in Idle state
+            if (uiState is HomeUiState.Idle) {
+                IdleContent()
+            }
+
             // URL Input Section
             OutlinedTextField(
                 value = videoUrl,
@@ -128,10 +115,32 @@ fun HomeScreen(
                 Text("Extract Subtitle")
             }
 
+            // Clear Button - shown when text is entered or error occurred
+            if (videoUrl.isNotBlank() || uiState is HomeUiState.Error) {
+                OutlinedButton(
+                    onClick = {
+                        Logger.logD("HomeScreen: Clear button clicked")
+                        viewModel.onEvent(HomeUiEvent.ClearContent)
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Clear,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Clear")
+                }
+            }
+
             // Content Section - based on UI state
             when (val state = uiState) {
                 is HomeUiState.Idle -> {
-                    IdleContent()
+                    // Idle content is now shown at the top
                 }
                 is HomeUiState.Loading -> {
                     LoadingContent(message = state.message)
