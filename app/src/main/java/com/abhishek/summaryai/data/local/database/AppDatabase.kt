@@ -1,0 +1,60 @@
+package com.abhishek.summaryai.data.local.database
+
+import android.content.Context
+import androidx.room.Database
+import androidx.room.Room
+import androidx.room.RoomDatabase
+import androidx.sqlite.db.SupportSQLiteDatabase
+import com.abhishek.summaryai.data.local.database.dao.PromptDao
+import com.abhishek.summaryai.data.local.database.entity.PromptEntity
+import com.abhishek.summaryai.data.seed.DefaultPromptsProvider
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+
+@Database(
+    entities = [PromptEntity::class],
+    version = 1,
+    exportSchema = false
+)
+abstract class AppDatabase : RoomDatabase() {
+    abstract fun promptDao(): PromptDao
+
+    companion object {
+        @Volatile
+        private var INSTANCE: AppDatabase? = null
+
+        fun getDatabase(context: Context): AppDatabase {
+            return INSTANCE ?: synchronized(this) {
+                val instance = Room.databaseBuilder(
+                    context.applicationContext,
+                    AppDatabase::class.java,
+                    "summary_ai_database"
+                )
+                    .addCallback(DatabaseCallback())
+                    .build()
+                INSTANCE = instance
+                instance
+            }
+        }
+
+        private class DatabaseCallback : Callback() {
+            override fun onCreate(db: SupportSQLiteDatabase) {
+                super.onCreate(db)
+                INSTANCE?.let { database ->
+                    CoroutineScope(Dispatchers.IO).launch {
+                        populateDatabase(database.promptDao())
+                    }
+                }
+            }
+
+            private suspend fun populateDatabase(promptDao: PromptDao) {
+                // Seed default prompts on first launch
+                val defaultPrompts = DefaultPromptsProvider.getDefaultPrompts()
+                defaultPrompts.forEach { prompt ->
+                    promptDao.insertPrompt(prompt)
+                }
+            }
+        }
+    }
+}

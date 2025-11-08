@@ -28,11 +28,18 @@ import com.abhishek.summaryai.util.Logger
 /**
  * Home Screen Composable
  * Single screen with URL input, subtitle display, and copy functionality
+ *
+ * @param modifier Modifier for the screen
+ * @param initialUrl Initial YouTube URL from deep link (optional)
+ * @param onNavigateToSummariser Callback for navigating to Summariser screen
+ * @param viewModel HomeViewModel injected via Hilt
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
+    modifier: Modifier = Modifier,
     initialUrl: String? = null,
+    onNavigateToSummariser: (videoId: String) -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -44,6 +51,11 @@ fun HomeScreen(
     // Set initial URL from deep link (only once)
     LaunchedEffect(initialUrl) {
         viewModel.setInitialUrl(initialUrl)
+    }
+
+    // Set navigation callback
+    LaunchedEffect(onNavigateToSummariser) {
+        viewModel.setNavigationCallback(onNavigateToSummariser)
     }
 
     Logger.logV("HomeScreen: Recomposing with state: ${uiState::class.simpleName}")

@@ -2,6 +2,7 @@ package com.abhishek.summaryai.presentation.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.abhishek.summaryai.data.repository.SubtitleCacheRepository
 import com.abhishek.summaryai.domain.model.Result
 import com.abhishek.summaryai.domain.usecase.DownloadSubtitlesUseCase
 import com.abhishek.summaryai.util.Logger
@@ -15,10 +16,14 @@ import javax.inject.Inject
 /**
  * ViewModel for Home Screen
  * Manages UI state and handles user interactions
+ *
+ * @param downloadSubtitlesUseCase Use case for downloading subtitles
+ * @param subtitleCacheRepository Repository for caching subtitle data
  */
 @HiltViewModel
 class HomeViewModel @Inject constructor(
-    private val downloadSubtitlesUseCase: DownloadSubtitlesUseCase
+    private val downloadSubtitlesUseCase: DownloadSubtitlesUseCase,
+    private val subtitleCacheRepository: SubtitleCacheRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<HomeUiState>(HomeUiState.Idle)
@@ -37,9 +42,23 @@ class HomeViewModel @Inject constructor(
 
     private var currentSubtitle: String = ""
 
+    // Navigation callback - set from UI layer
+    private var onNavigateToSummariser: ((videoId: String) -> Unit)? = null
+
     init {
         Logger.logI("HomeViewModel: Initialized")
         Logger.logD("HomeViewModel: Default language: ${SubtitleLanguage.ENGLISH.displayName}")
+    }
+
+    /**
+     * Set navigation callback for navigating to Summariser screen
+     * Called from UI layer after successful subtitle download
+     *
+     * @param callback Navigation callback function
+     */
+    fun setNavigationCallback(callback: (videoId: String) -> Unit) {
+        Logger.logD("HomeViewModel: Navigation callback set")
+        onNavigateToSummariser = callback
     }
 
     /**
@@ -104,6 +123,18 @@ class HomeViewModel @Inject constructor(
                             videoTitle = result.data.videoTitle
                         )
                         Logger.logI("HomeViewModel: Successfully loaded subtitles (${result.data.text.length} chars)")
+
+                        // Cache the subtitle data for navigation
+                        subtitleCacheRepository.cacheSubtitle(result.data)
+                        Logger.logD("HomeViewModel: Subtitle cached for video ${result.data.videoId}")
+
+                        // Trigger navigation to Summariser screen
+                        onNavigateToSummariser?.let { callback ->
+                            Logger.logI("HomeViewModel: Triggering navigation to Summariser screen for video ${result.data.videoId}")
+                            callback(result.data.videoId)
+                        } ?: run {
+                            Logger.logW("HomeViewModel: Navigation callback not set, staying on Home screen")
+                        }
                     }
                     is Result.Error -> {
                         _uiState.value = HomeUiState.Error(result.message)
@@ -198,6 +229,9 @@ class HomeViewModel @Inject constructor(
         currentSubtitle = ""
         _selectedLanguage.value = SubtitleLanguage.ENGLISH
         _languageExpanded.value = false
+
+        // Clear cached subtitle
+        subtitleCacheRepository.clearCache()
 
         Logger.logD("HomeViewModel: All content cleared, reset to initial state")
     }

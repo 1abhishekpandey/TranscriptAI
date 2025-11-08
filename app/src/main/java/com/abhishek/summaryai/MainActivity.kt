@@ -5,8 +5,13 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.mutableStateOf
-import com.abhishek.summaryai.presentation.home.HomeScreen
+import androidx.compose.ui.Modifier
+import androidx.navigation.compose.rememberNavController
+import com.abhishek.summaryai.presentation.navigation.SummariserNavGraph
 import com.abhishek.summaryai.ui.theme.SummaryAITheme
 import com.abhishek.summaryai.util.Logger
 import dagger.hilt.android.AndroidEntryPoint
@@ -31,7 +36,18 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             SummaryAITheme {
-                HomeScreen(initialUrl = sharedUrl.value)
+                val navController = rememberNavController()
+
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background
+                ) {
+                    SummariserNavGraph(
+                        navController = navController,
+                        modifier = Modifier.fillMaxSize(),
+                        initialUrl = sharedUrl.value
+                    )
+                }
             }
         }
     }

@@ -63,6 +63,9 @@ dependencies {
     implementation(libs.javapoet)
     ksp(libs.hilt.compiler)
 
+    // Navigation
+    implementation(libs.androidx.navigation.compose)
+
     // Networking
     implementation(libs.retrofit)
     implementation(libs.retrofit.gson)
@@ -76,6 +79,11 @@ dependencies {
 
     // Logging
     implementation(libs.timber)
+
+    // Room Database
+    implementation(libs.room.runtime)
+    implementation(libs.room.ktx)
+    ksp(libs.room.compiler)
 
     // YouTube Subtitle Downloader Extension
     implementation(project(":extensions:youtubeSubtitleDownloader"))

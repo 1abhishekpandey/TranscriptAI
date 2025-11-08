@@ -1,8 +1,16 @@
 package com.abhishek.summaryai.di
 
 import android.content.Context
+import com.abhishek.summaryai.data.local.database.AppDatabase
+import com.abhishek.summaryai.data.local.database.dao.PromptDao
+import com.abhishek.summaryai.data.local.preferences.SummariserPreferences
+import com.abhishek.summaryai.data.repository.PromptRepositoryImpl
+import com.abhishek.summaryai.data.repository.SubtitleCacheRepository
 import com.abhishek.summaryai.data.repository.SubtitleRepositoryImpl
+import com.abhishek.summaryai.data.repository.SummariserConfigRepositoryImpl
+import com.abhishek.summaryai.domain.repository.PromptRepository
 import com.abhishek.summaryai.domain.repository.SubtitleRepository
+import com.abhishek.summaryai.domain.repository.SummariserConfigRepository
 import com.abhishek.summaryai.util.Logger
 import com.abhishek.youtubesubtitledownloader.YouTubeSubtitleDownloader
 import com.abhishek.youtubesubtitledownloader.util.LogLevel
@@ -91,5 +99,72 @@ object AppModule {
     ): SubtitleRepository {
         Logger.logD("AppModule: Providing SubtitleRepository with YouTubeSubtitleDownloader")
         return SubtitleRepositoryImpl(youtubeSubtitleDownloader)
+    }
+
+    /**
+     * Provides AppDatabase instance
+     */
+    @Provides
+    @Singleton
+    fun provideAppDatabase(@ApplicationContext context: Context): AppDatabase {
+        Logger.logD("AppModule: Creating AppDatabase instance")
+        return AppDatabase.getDatabase(context)
+    }
+
+    /**
+     * Provides PromptDao from AppDatabase
+     */
+    @Provides
+    @Singleton
+    fun providePromptDao(database: AppDatabase): PromptDao {
+        Logger.logD("AppModule: Providing PromptDao")
+        return database.promptDao()
+    }
+
+    /**
+     * Provides PromptRepository implementation
+     */
+    @Provides
+    @Singleton
+    fun providePromptRepository(promptDao: PromptDao): PromptRepository {
+        Logger.logD("AppModule: Providing PromptRepository")
+        return PromptRepositoryImpl(promptDao)
+    }
+
+    /**
+     * Provides SummariserPreferences instance
+     * Manages AI summariser configuration using SharedPreferences
+     */
+    @Provides
+    @Singleton
+    fun provideSummariserPreferences(
+        @ApplicationContext context: Context
+    ): SummariserPreferences {
+        Logger.logD("AppModule: Providing SummariserPreferences")
+        return SummariserPreferences(context)
+    }
+
+    /**
+     * Provides SummariserConfigRepository implementation
+     * Handles configuration for AI summariser feature
+     */
+    @Provides
+    @Singleton
+    fun provideSummariserConfigRepository(
+        preferences: SummariserPreferences
+    ): SummariserConfigRepository {
+        Logger.logD("AppModule: Providing SummariserConfigRepository")
+        return SummariserConfigRepositoryImpl(preferences)
+    }
+
+    /**
+     * Provides SubtitleCacheRepository
+     * In-memory cache for sharing subtitle data between screens
+     */
+    @Provides
+    @Singleton
+    fun provideSubtitleCacheRepository(): SubtitleCacheRepository {
+        Logger.logD("AppModule: Providing SubtitleCacheRepository")
+        return SubtitleCacheRepository()
     }
 }
