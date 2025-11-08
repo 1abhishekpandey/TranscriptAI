@@ -3,7 +3,7 @@ package com.abhishek.summaryai.presentation.summariser
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -13,6 +13,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.abhishek.summaryai.presentation.summariser.components.*
 import com.abhishek.summaryai.util.clipboard.ClipboardHelper
+import com.abhishek.summaryai.util.share.ShareHelper
 
 /**
  * Summariser Screen - Main screen for AI summarizer feature
@@ -21,7 +22,7 @@ import com.abhishek.summaryai.util.clipboard.ClipboardHelper
  * - AI toggle switch
  * - Prompt selector dropdown
  * - Scrollable subtitle text
- * - Copy to clipboard button
+ * - Share button with multiple options
  *
  * @param videoId The YouTube video ID
  * @param onNavigateToPromptEditor Callback to navigate to prompt editor
@@ -47,6 +48,9 @@ fun SummariserScreen(
         viewModel.onCopyToClipboard = { text ->
             ClipboardHelper.copyToClipboard(context, text, "AI Summarizer")
         }
+        viewModel.onShareToApp = { text, packageName ->
+            ShareHelper.shareToApp(context, text, packageName)
+        }
         viewModel.loadSubtitle(videoId)
     }
 
@@ -64,11 +68,11 @@ fun SummariserScreen(
         floatingActionButton = {
             if (uiState.subtitleResult != null) {
                 ExtendedFloatingActionButton(
-                    onClick = { viewModel.onEvent(SummariserUiEvent.CopyToClipboard) },
+                    onClick = { viewModel.onEvent(SummariserUiEvent.ShareButtonClicked) },
                     icon = {
-                        Icon(Icons.Default.ContentCopy, contentDescription = null)
+                        Icon(Icons.Default.Share, contentDescription = null)
                     },
-                    text = { Text("Copy") }
+                    text = { Text("Share") }
                 )
             }
         }
@@ -139,6 +143,17 @@ fun SummariserScreen(
                     )
                 }
             }
+        }
+
+        // Share Bottom Sheet
+        if (uiState.showShareSheet) {
+            ShareBottomSheet(
+                isAiEnabled = uiState.isAiSummariserEnabled,
+                onDismiss = { viewModel.onEvent(SummariserUiEvent.DismissShareSheet) },
+                onOptionSelected = { option ->
+                    viewModel.onEvent(SummariserUiEvent.ShareOptionSelected(option))
+                }
+            )
         }
     }
 }

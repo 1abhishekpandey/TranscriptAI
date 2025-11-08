@@ -9,7 +9,7 @@ import timber.log.Timber
  * Default level: VERBOSE
  */
 object Logger {
-    private const val TAG = "SummaryAI"
+    private const val TAG = "YouTubeSummaryAI"
 
     /**
      * Initialize the logger. Call this in Application.onCreate()

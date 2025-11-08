@@ -2,6 +2,7 @@ package com.abhishek.summaryai.domain.usecase.subtitle
 
 import com.abhishek.summaryai.domain.repository.PromptRepository
 import com.abhishek.summaryai.domain.repository.SummariserConfigRepository
+import com.abhishek.summaryai.util.Logger
 import kotlinx.coroutines.flow.first
 
 /**
@@ -23,14 +24,21 @@ class FormatSubtitleForCopyUseCase(
     suspend operator fun invoke(subtitleText: String): String {
         val config = configRepository.getConfig().first()
 
+        Logger.logD("FormatSubtitleForCopyUseCase: AI enabled=${config.isAiSummariserEnabled}, selectedPromptId=${config.selectedPromptId}")
+
         return if (config.isAiSummariserEnabled && config.selectedPromptId != null) {
             val prompt = promptRepository.getPromptById(config.selectedPromptId)
+            Logger.logD("FormatSubtitleForCopyUseCase: Found prompt ID=${prompt?.id}, text length=${prompt?.text?.length}")
             if (prompt != null) {
-                "${prompt.text}\n\n$subtitleText"
+                val formatted = "${prompt.text}\n\n$subtitleText"
+                Logger.logI("FormatSubtitleForCopyUseCase: Formatted text with prompt. Total length=${formatted.length}, prompt length=${prompt.text.length}, subtitle length=${subtitleText.length}")
+                formatted
             } else {
+                Logger.logW("FormatSubtitleForCopyUseCase: Prompt not found for ID=${config.selectedPromptId}, returning raw subtitle")
                 subtitleText
             }
         } else {
+            Logger.logI("FormatSubtitleForCopyUseCase: AI disabled or no prompt selected, returning raw subtitle")
             subtitleText
         }
     }

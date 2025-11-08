@@ -12,6 +12,7 @@ import com.abhishek.summaryai.domain.model.SubtitleResult
  * @property isAiSummariserEnabled Whether AI summariser feature is enabled
  * @property isLoading Whether the screen is in loading state
  * @property error Error message if any
+ * @property showShareSheet Whether to show the share bottom sheet
  */
 data class SummariserUiState(
     val subtitleResult: SubtitleResult? = null,
@@ -19,5 +20,6 @@ data class SummariserUiState(
     val selectedPrompt: Prompt? = null,
     val isAiSummariserEnabled: Boolean = true,
     val isLoading: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    val showShareSheet: Boolean = false
 )

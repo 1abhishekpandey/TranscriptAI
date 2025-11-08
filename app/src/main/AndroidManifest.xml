@@ -4,6 +4,13 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
 
+    <!-- Package visibility queries for Android 11+ (API 30+) -->
+    <!-- Required to detect and share to ChatGPT and Claude apps -->
+    <queries>
+        <package android:name="com.openai.chatgpt" />
+        <package android:name="com.anthropic.claude" />
+    </queries>
+
     <application
         android:name=".SummaryAiApplication"
         android:allowBackup="true"

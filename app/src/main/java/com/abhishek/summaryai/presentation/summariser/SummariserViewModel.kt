@@ -8,6 +8,7 @@ import com.abhishek.summaryai.domain.usecase.config.ToggleAiSummariserUseCase
 import com.abhishek.summaryai.domain.usecase.config.UpdateSummariserConfigUseCase
 import com.abhishek.summaryai.domain.usecase.prompt.GetPromptsUseCase
 import com.abhishek.summaryai.domain.usecase.subtitle.FormatSubtitleForCopyUseCase
+import com.abhishek.summaryai.presentation.summariser.components.ShareOption
 import com.abhishek.summaryai.util.Logger
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
@@ -40,6 +41,7 @@ class SummariserViewModel @Inject constructor(
 
     var onNavigateToPromptEditor: () -> Unit = {}
     var onCopyToClipboard: (String) -> Unit = {}
+    var onShareToApp: (String, String) -> Unit = { _, _ -> } // (text, packageName)
 
     init {
         Logger.logD("SummariserViewModel: Initializing")
@@ -85,6 +87,18 @@ class SummariserViewModel @Inject constructor(
                     _uiState.update { currentState ->
                         val selectedPrompt = currentState.selectedPrompt
                             ?: prompts.firstOrNull()
+
+                        // Auto-save first prompt to config if none is selected
+                        if (currentState.selectedPrompt == null && selectedPrompt != null) {
+                            Logger.logI("SummariserViewModel: Auto-selecting first prompt: ${selectedPrompt.id}")
+                            viewModelScope.launch {
+                                val config = com.abhishek.summaryai.domain.model.SummariserConfig(
+                                    isAiSummariserEnabled = currentState.isAiSummariserEnabled,
+                                    selectedPromptId = selectedPrompt.id
+                                )
+                                updateSummariserConfigUseCase(config)
+                            }
+                        }
 
                         currentState.copy(
                             prompts = prompts,
@@ -132,7 +146,9 @@ class SummariserViewModel @Inject constructor(
         when (event) {
             is SummariserUiEvent.ToggleAiSummariser -> toggleAiSummariser(event.enabled)
             is SummariserUiEvent.SelectPrompt -> selectPrompt(event.promptId)
-            is SummariserUiEvent.CopyToClipboard -> copyToClipboard()
+            is SummariserUiEvent.ShareButtonClicked -> showShareSheet()
+            is SummariserUiEvent.ShareOptionSelected -> handleShareOption(event.option)
+            is SummariserUiEvent.DismissShareSheet -> dismissShareSheet()
             is SummariserUiEvent.NavigateToPromptEditor -> navigateToPromptEditor()
         }
     }
@@ -177,21 +193,53 @@ class SummariserViewModel @Inject constructor(
     }
 
     /**
-     * Copy subtitle (with or without prompt) to clipboard
+     * Show the share bottom sheet
      */
-    private fun copyToClipboard() {
-        Logger.logI("SummariserViewModel: Copying to clipboard")
+    private fun showShareSheet() {
+        Logger.logI("SummariserViewModel: Showing share sheet")
+        _uiState.update { it.copy(showShareSheet = true) }
+    }
+
+    /**
+     * Dismiss the share bottom sheet
+     */
+    private fun dismissShareSheet() {
+        Logger.logI("SummariserViewModel: Dismissing share sheet")
+        _uiState.update { it.copy(showShareSheet = false) }
+    }
+
+    /**
+     * Handle the selected share option from the bottom sheet
+     *
+     * @param option The selected share option
+     */
+    private fun handleShareOption(option: ShareOption) {
+        Logger.logI("SummariserViewModel: Handling share option: $option")
         val subtitle = _uiState.value.subtitleResult?.text
 
         if (subtitle.isNullOrEmpty()) {
-            Logger.logW("SummariserViewModel: Cannot copy - subtitle is empty")
+            Logger.logW("SummariserViewModel: Cannot share - subtitle is empty")
             return
         }
 
         viewModelScope.launch {
             val formattedText = formatSubtitleForCopyUseCase(subtitle)
             Logger.logI("SummariserViewModel: Formatted text length: ${formattedText.length}")
-            onCopyToClipboard(formattedText)
+
+            when (option) {
+                ShareOption.CLIPBOARD -> {
+                    Logger.logD("SummariserViewModel: Copying to clipboard")
+                    onCopyToClipboard(formattedText)
+                }
+                ShareOption.CHATGPT -> {
+                    Logger.logD("SummariserViewModel: Sharing to ChatGPT")
+                    onShareToApp(formattedText, "com.openai.chatgpt")
+                }
+                ShareOption.CLAUDE -> {
+                    Logger.logD("SummariserViewModel: Sharing to Claude")
+                    onShareToApp(formattedText, "com.anthropic.claude")
+                }
+            }
         }
     }
 
