@@ -2,7 +2,7 @@
 
 ## Clean Architecture Layers
 
-SummaryAI follows strict separation of concerns across three layers:
+TranscriptAI follows strict separation of concerns across three layers:
 
 ### 1. Presentation Layer (`ui/`)
 - Views (Composables)

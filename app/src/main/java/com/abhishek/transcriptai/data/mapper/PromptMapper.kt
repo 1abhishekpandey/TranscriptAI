@@ -1,0 +1,32 @@
+package com.abhishek.transcriptai.data.mapper
+
+import com.abhishek.transcriptai.data.local.database.entity.PromptEntity
+import com.abhishek.transcriptai.domain.model.Prompt
+
+object PromptMapper {
+    fun toDomain(entity: PromptEntity): Prompt {
+        return Prompt(
+            id = entity.id,
+            text = entity.text,
+            createdAt = entity.createdAt,
+            lastModified = entity.lastModified,
+            isDefault = entity.isDefault,
+            lastSelectedAt = entity.lastSelectedAt
+        )
+    }
+
+    fun toEntity(domain: Prompt): PromptEntity {
+        return PromptEntity(
+            id = domain.id,
+            text = domain.text,
+            createdAt = domain.createdAt,
+            lastModified = domain.lastModified,
+            isDefault = domain.isDefault,
+            lastSelectedAt = domain.lastSelectedAt
+        )
+    }
+
+    fun toDomainList(entities: List<PromptEntity>): List<Prompt> {
+        return entities.map { toDomain(it) }
+    }
+}

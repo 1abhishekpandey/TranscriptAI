@@ -19,6 +19,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "SummaryAI"
+rootProject.name = "TranscriptAI"
 include(":app")
 include(":extensions:youtubeSubtitleDownloader")

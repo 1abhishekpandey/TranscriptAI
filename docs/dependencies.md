@@ -1,6 +1,6 @@
 # Dependencies Guide
 
-This document lists all dependencies used in the SummaryAI project.
+This document lists all dependencies used in the TranscriptAI project.
 
 ## App Dependencies
 

@@ -1,17 +1,17 @@
 # Logging Guide
 
-This document describes the logging system used across the SummaryAI project.
+This document describes the logging system used across the TranscriptAI project.
 
 ## Overview
 
-SummaryAI uses a centralized logging system with consistent patterns across all modules.
+TranscriptAI uses a centralized logging system with consistent patterns across all modules.
 
 ## App Logging
 
 ### Logger Utility
 
-**Location**: `app/src/main/java/com/abhishek/summaryai/util/Logger.kt`
-**Tag**: `"SummaryAI"`
+**Location**: `app/src/main/java/com/abhishek/transcriptai/util/Logger.kt`
+**Tag**: `"TranscriptAI"`
 **Default Level**: `VERBOSE`
 **Built on**: Timber library
 
@@ -35,7 +35,7 @@ Logger.logExit(methodName: String)   // Log method exit
 The logger is initialized in the Application class:
 
 ```kotlin
-class SummaryAiApplication : Application() {
+class TranscriptAIApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         Logger.init()  // Initialize Timber
@@ -47,7 +47,7 @@ class SummaryAiApplication : Application() {
 
 ### YouTube Subtitle Downloader
 
-**Tag**: `"summaryaiYouTubeSubtitleDownloader"`
+**Tag**: `"transcriptaiYouTubeSubtitleDownloader"`
 **Default Level**: `VERBOSE`
 **Location**: `extensions/youtubeSubtitleDownloader/src/main/java/com/abhishek/youtubesubtitledownloader/util/SubtitleLogger.kt`
 
@@ -159,11 +159,11 @@ Logger.logW("ApiKeyCache: Cache read error", ioException)
 ### Application Layer
 
 ```kotlin
-class SummaryAiApplication : Application() {
+class TranscriptAIApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         Logger.init()
-        Logger.logI("SummaryAiApplication: Application created")
+        Logger.logI("TranscriptAIApplication: Application created")
     }
 }
 ```
@@ -284,23 +284,23 @@ object Logger {
 ### Logcat (Android Studio)
 
 1. Open Logcat tab
-2. Filter by tag: `SummaryAI` or `summaryaiYouTubeSubtitleDownloader`
+2. Filter by tag: `TranscriptAI` or `transcriptaiYouTubeSubtitleDownloader`
 3. Select log level
 
 ### ADB Command Line
 
 ```bash
 # View app logs only
-adb logcat -s SummaryAI
+adb logcat -s TranscriptAI
 
 # View extension logs only
-adb logcat -s summaryaiYouTubeSubtitleDownloader
+adb logcat -s transcriptaiYouTubeSubtitleDownloader
 
 # View both
-adb logcat -s SummaryAI:V summaryaiYouTubeSubtitleDownloader:V
+adb logcat -s TranscriptAI:V transcriptaiYouTubeSubtitleDownloader:V
 
 # Set log level
-adb shell setprop log.tag.SummaryAI VERBOSE
+adb shell setprop log.tag.TranscriptAI VERBOSE
 
 # Clear logs
 adb logcat -c
@@ -353,7 +353,7 @@ Logger.logD("API request: $sanitizedUrl")
 - **Solution**: Ensure `Logger.init()` is called in `Application.onCreate()`
 
 **Problem**: Log level too high
-- **Solution**: Check device log level settings with `adb shell getprop log.tag.SummaryAI`
+- **Solution**: Check device log level settings with `adb shell getprop log.tag.TranscriptAI`
 
 **Problem**: Tag filter not working
 - **Solution**: Verify exact tag name (case-sensitive)

@@ -12,7 +12,7 @@
     </queries>
 
     <application
-        android:name=".SummaryAiApplication"
+        android:name=".TranscriptAiApplication"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
@@ -20,12 +20,12 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.SummaryAI">
+        android:theme="@style/Theme.TranscriptAI">
         <activity
             android:name=".MainActivity"
             android:exported="true"
             android:label="@string/app_name"
-            android:theme="@style/Theme.SummaryAI"
+            android:theme="@style/Theme.TranscriptAI"
             android:launchMode="singleTop">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

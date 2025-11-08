@@ -1,6 +1,6 @@
 # Troubleshooting Guide
 
-This document provides solutions to common issues encountered when developing SummaryAI.
+This document provides solutions to common issues encountered when developing TranscriptAI.
 
 ## Build Issues
 
@@ -119,17 +119,17 @@ This document provides solutions to common issues encountered when developing Su
 **Solution**:
 1. Ensure `Logger.init()` is called in `Application.onCreate()`:
    ```kotlin
-   class SummaryAiApplication : Application() {
+   class TranscriptAIApplication : Application() {
        override fun onCreate() {
            super.onCreate()
            Logger.init()  // Must be called!
        }
    }
    ```
-2. Check Logcat filter is set to `SummaryAI`
+2. Check Logcat filter is set to `TranscriptAI`
 3. Verify log level:
    ```bash
-   adb shell setprop log.tag.SummaryAI VERBOSE
+   adb shell setprop log.tag.TranscriptAI VERBOSE
    ```
 4. Check device logs are enabled
 
@@ -151,7 +151,7 @@ This document provides solutions to common issues encountered when developing Su
 2. Check Application class is registered in `AndroidManifest.xml`:
    ```xml
    <application
-       android:name=".SummaryAiApplication"
+       android:name=".TranscriptAIApplication"
        ...
    ```
 3. Ensure all required modules are provided in `AppModule.kt`
@@ -206,7 +206,7 @@ This document provides solutions to common issues encountered when developing Su
    ```
 3. Check logcat for extension logs:
    ```bash
-   adb logcat -s summaryaiYouTubeSubtitleDownloader
+   adb logcat -s transcriptaiYouTubeSubtitleDownloader
    ```
 4. Test with known working YouTube URL (public video with subtitles)
 5. Clear extension cache:
@@ -318,8 +318,8 @@ This document provides solutions to common issues encountered when developing Su
 
 For app:
 ```bash
-adb shell setprop log.tag.SummaryAI VERBOSE
-adb logcat -s SummaryAI:V
+adb shell setprop log.tag.TranscriptAI VERBOSE
+adb logcat -s TranscriptAI:V
 ```
 
 For extension:
@@ -327,7 +327,7 @@ For extension:
 YouTubeSubtitleDownloader.setLogLevel(LogLevel.VERBOSE)
 ```
 ```bash
-adb logcat -s summaryaiYouTubeSubtitleDownloader:V
+adb logcat -s transcriptaiYouTubeSubtitleDownloader:V
 ```
 
 ### View All Dependencies
@@ -342,7 +342,7 @@ Check for version conflicts:
 
 Reset app state completely:
 ```bash
-adb shell pm clear com.abhishek.summaryai
+adb shell pm clear com.abhishek.transcriptai
 ```
 
 ### View Build Configuration

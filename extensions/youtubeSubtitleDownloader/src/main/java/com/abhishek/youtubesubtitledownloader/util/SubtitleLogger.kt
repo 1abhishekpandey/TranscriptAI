@@ -4,11 +4,11 @@ import android.util.Log
 
 /**
  * Centralized logger for YouTube Subtitle Downloader
- * Tag: summaryaiYouTubeSubtitleDownloader
+ * Tag: TranscriptAIYouTubeSubtitleDownloader
  * Default log level: VERBOSE
  */
 object SubtitleLogger {
-    private const val TAG = "summaryaiYouTubeSubtitleDownloader"
+    private const val TAG = "TranscriptAIYouTubeSubtitleDownloader"
 
     @Volatile
     var logLevel: LogLevel = LogLevel.VERBOSE

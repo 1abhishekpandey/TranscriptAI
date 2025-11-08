@@ -6,11 +6,11 @@ plugins {
 }
 
 android {
-    namespace = "com.abhishek.summaryai"
+    namespace = "com.abhishek.transcriptai"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.abhishek.summaryai"
+        applicationId = "com.abhishek.transcriptai"
         minSdk = 25
         targetSdk = 36
         versionCode = 1
