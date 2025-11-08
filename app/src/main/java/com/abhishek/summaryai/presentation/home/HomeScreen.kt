@@ -13,6 +13,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -56,6 +57,24 @@ fun HomeScreen(
                     titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
                 )
             )
+        },
+        floatingActionButton = {
+            // Show FAB only when there's content to clear (Success or Error states)
+            if (uiState is HomeUiState.Success || uiState is HomeUiState.Error) {
+                FloatingActionButton(
+                    onClick = {
+                        Logger.logD("HomeScreen: Clear button clicked")
+                        viewModel.onEvent(HomeUiEvent.ClearContent)
+                    },
+                    containerColor = MaterialTheme.colorScheme.errorContainer,
+                    contentColor = MaterialTheme.colorScheme.onErrorContainer
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Clear,
+                        contentDescription = "Clear all content"
+                    )
+                }
+            }
         }
     ) { paddingValues ->
         Column(

@@ -62,6 +62,11 @@ sealed class HomeUiEvent {
      * User toggled language selection expansion
      */
     data object ToggleLanguageExpansion : HomeUiEvent()
+
+    /**
+     * User clicked the clear button to reset everything
+     */
+    data object ClearContent : HomeUiEvent()
 }
 
 /**

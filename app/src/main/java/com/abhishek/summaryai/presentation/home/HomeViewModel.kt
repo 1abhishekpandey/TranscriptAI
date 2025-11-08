@@ -64,6 +64,9 @@ class HomeViewModel @Inject constructor(
             is HomeUiEvent.ToggleLanguageExpansion -> {
                 toggleLanguageExpansion()
             }
+            is HomeUiEvent.ClearContent -> {
+                clearContent()
+            }
         }
     }
 
@@ -182,6 +185,21 @@ class HomeViewModel @Inject constructor(
         val preferences = listOf(_selectedLanguage.value.code)
         Logger.logD("HomeViewModel: Language preference: ${preferences.joinToString(", ")}")
         return preferences
+    }
+
+    /**
+     * Clear all content and reset to initial state
+     */
+    private fun clearContent() {
+        Logger.logI("HomeViewModel: Clearing all content")
+
+        _uiState.value = HomeUiState.Idle
+        _videoUrl.value = ""
+        currentSubtitle = ""
+        _selectedLanguage.value = SubtitleLanguage.ENGLISH
+        _languageExpanded.value = false
+
+        Logger.logD("HomeViewModel: All content cleared, reset to initial state")
     }
 
     override fun onCleared() {
