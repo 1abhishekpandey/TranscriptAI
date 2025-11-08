@@ -4,45 +4,52 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
+import com.abhishek.summaryai.presentation.home.HomeScreen
 import com.abhishek.summaryai.ui.theme.SummaryAITheme
+import com.abhishek.summaryai.util.Logger
+import dagger.hilt.android.AndroidEntryPoint
 
+/**
+ * Main Activity for SummaryAI
+ * Entry point for the application UI
+ */
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        Logger.logI("MainActivity: onCreate")
+
         enableEdgeToEdge()
         setContent {
             SummaryAITheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
-                        name = "Android",
-                        modifier = Modifier.padding(innerPadding)
-                    )
-                }
+                HomeScreen()
             }
         }
     }
-}
 
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
+    override fun onStart() {
+        super.onStart()
+        Logger.logV("MainActivity: onStart")
+    }
 
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    SummaryAITheme {
-        Greeting("Android")
+    override fun onResume() {
+        super.onResume()
+        Logger.logV("MainActivity: onResume")
+    }
+
+    override fun onPause() {
+        super.onPause()
+        Logger.logV("MainActivity: onPause")
+    }
+
+    override fun onStop() {
+        super.onStop()
+        Logger.logV("MainActivity: onStop")
+    }
+
+    override fun onDestroy() {
+        Logger.logI("MainActivity: onDestroy")
+        super.onDestroy()
     }
 }
