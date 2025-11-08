@@ -77,6 +77,9 @@ dependencies {
     // Logging
     implementation(libs.timber)
 
+    // YouTube Subtitle Downloader Extension
+    implementation(project(":extensions:youtubeSubtitleDownloader"))
+
     // Testing
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

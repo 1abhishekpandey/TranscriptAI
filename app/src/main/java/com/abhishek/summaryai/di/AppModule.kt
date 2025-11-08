@@ -1,11 +1,15 @@
 package com.abhishek.summaryai.di
 
+import android.content.Context
 import com.abhishek.summaryai.data.repository.SubtitleRepositoryImpl
 import com.abhishek.summaryai.domain.repository.SubtitleRepository
 import com.abhishek.summaryai.util.Logger
+import com.abhishek.youtubesubtitledownloader.YouTubeSubtitleDownloader
+import com.abhishek.youtubesubtitledownloader.util.LogLevel
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
+import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -63,12 +67,29 @@ object AppModule {
     }
 
     /**
+     * Provides YouTubeSubtitleDownloader instance
+     * This is the extension that handles YouTube subtitle downloading
+     */
+    @Provides
+    @Singleton
+    fun provideYouTubeSubtitleDownloader(@ApplicationContext context: Context): YouTubeSubtitleDownloader {
+        Logger.logD("AppModule: Creating YouTubeSubtitleDownloader instance")
+
+        // Set log level to INFO to reduce verbosity (can be changed to VERBOSE for debugging)
+        YouTubeSubtitleDownloader.setLogLevel(LogLevel.INFO)
+
+        return YouTubeSubtitleDownloader.getInstance(context)
+    }
+
+    /**
      * Provides SubtitleRepository implementation
      */
     @Provides
     @Singleton
-    fun provideSubtitleRepository(): SubtitleRepository {
-        Logger.logD("AppModule: Providing SubtitleRepository")
-        return SubtitleRepositoryImpl()
+    fun provideSubtitleRepository(
+        youtubeSubtitleDownloader: YouTubeSubtitleDownloader
+    ): SubtitleRepository {
+        Logger.logD("AppModule: Providing SubtitleRepository with YouTubeSubtitleDownloader")
+        return SubtitleRepositoryImpl(youtubeSubtitleDownloader)
     }
 }

@@ -4,64 +4,59 @@ import com.abhishek.summaryai.domain.model.Result
 import com.abhishek.summaryai.domain.model.SubtitleResult
 import com.abhishek.summaryai.domain.repository.SubtitleRepository
 import com.abhishek.summaryai.util.Logger
+import com.abhishek.youtubesubtitledownloader.YouTubeSubtitleDownloader
+import com.abhishek.youtubesubtitledownloader.domain.model.SubtitleResult as ExtensionSubtitleResult
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 /**
  * Implementation of SubtitleRepository
- * Handles data operations for subtitle downloading
+ * Handles data operations for subtitle downloading using YouTube Subtitle Downloader extension
  */
-class SubtitleRepositoryImpl @Inject constructor() : SubtitleRepository {
+class SubtitleRepositoryImpl @Inject constructor(
+    private val youtubeSubtitleDownloader: YouTubeSubtitleDownloader
+) : SubtitleRepository {
 
     override suspend fun downloadSubtitles(videoUrl: String): Result<SubtitleResult> = withContext(Dispatchers.IO) {
         try {
             Logger.logI("SubtitleRepositoryImpl: Starting subtitle download for: $videoUrl")
 
-            // Extract video ID from URL
+            // Extract video ID from URL for logging
             val videoId = extractVideoId(videoUrl)
             Logger.logD("SubtitleRepositoryImpl: Extracted video ID: $videoId")
 
-            // TODO: Call the YouTube subtitle downloader extension
-            // Path: /Users/abhishekpandey/Documents/Abhishek/personal/Learning/SummaryAI/extensions/youtubeSubtitleDownloader
-            // This extension should be integrated to fetch actual subtitles from YouTube
-            // Expected functionality:
-            // 1. Accept video URL/ID as input
-            // 2. Fetch subtitle tracks from YouTube InnerTube API
-            // 3. Parse subtitle XML/JSON
-            // 4. Return formatted subtitle text
-            //
-            // For now, returning mock data for UI testing
-
-            Logger.logV("SubtitleRepositoryImpl: Simulating subtitle download...")
-            delay(2000) // Simulate network delay
-
-            // Mock subtitle data
-            val mockSubtitle = """
-                Hello and welcome to this YouTube video.
-                Today we're going to talk about interesting topics.
-                This is just a placeholder subtitle text.
-
-                In a real implementation, this would contain
-                the actual subtitles fetched from YouTube using
-                the extension at /extensions/youtubeSubtitleDownloader.
-
-                The extension will use YouTube's InnerTube API
-                to fetch caption tracks and parse them into readable text.
-
-                Thank you for watching!
-            """.trimIndent()
-
-            Logger.logI("SubtitleRepositoryImpl: Successfully fetched subtitles (${mockSubtitle.length} chars)")
-
-            Result.Success(
-                SubtitleResult(
-                    text = mockSubtitle,
-                    videoId = videoId,
-                    videoTitle = "Mock Video Title"
-                )
+            // Use YouTube Subtitle Downloader extension
+            Logger.logV("SubtitleRepositoryImpl: Calling YouTube subtitle downloader extension...")
+            val extensionResult = youtubeSubtitleDownloader.downloadSubtitles(
+                url = videoUrl,
+                languagePreferences = listOf("en", "hi", "auto") // Default language preferences
             )
+
+            // Map extension result to app's domain model
+            when (extensionResult) {
+                is ExtensionSubtitleResult.Success -> {
+                    Logger.logI("SubtitleRepositoryImpl: Successfully fetched subtitles (${extensionResult.text.length} chars) in language: ${extensionResult.language}")
+                    Result.Success(
+                        SubtitleResult(
+                            text = extensionResult.text,
+                            videoId = videoId,
+                            videoTitle = null // Extension doesn't provide video title
+                        )
+                    )
+                }
+                is ExtensionSubtitleResult.Error -> {
+                    Logger.logE("SubtitleRepositoryImpl: Extension error: ${extensionResult.message}", extensionResult.throwable)
+                    Result.Error(
+                        message = "Failed to download subtitles: ${extensionResult.message}",
+                        exception = extensionResult.throwable
+                    )
+                }
+                is ExtensionSubtitleResult.Loading -> {
+                    Logger.logV("SubtitleRepositoryImpl: Extension is loading...")
+                    Result.Loading
+                }
+            }
         } catch (e: Exception) {
             Logger.logE("SubtitleRepositoryImpl: Error downloading subtitles", e)
             Result.Error("Failed to download subtitles: ${e.message}", e)
