@@ -27,9 +27,4 @@ sealed class SummariserUiEvent {
      * Navigate to the Prompt Editor screen
      */
     data object NavigateToPromptEditor : SummariserUiEvent()
-
-    /**
-     * Toggle the expansion state of the prompt text display
-     */
-    data object TogglePromptExpansion : SummariserUiEvent()
 }

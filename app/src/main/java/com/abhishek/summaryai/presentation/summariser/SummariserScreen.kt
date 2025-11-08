@@ -125,10 +125,8 @@ fun SummariserScreen(
                         PromptSelectorSection(
                             prompts = uiState.prompts,
                             selectedPrompt = uiState.selectedPrompt,
-                            isExpanded = uiState.isPromptExpanded,
                             onSelectPrompt = { viewModel.onEvent(SummariserUiEvent.SelectPrompt(it)) },
-                            onEditClick = { viewModel.onEvent(SummariserUiEvent.NavigateToPromptEditor) },
-                            onToggleExpansion = { viewModel.onEvent(SummariserUiEvent.TogglePromptExpansion) }
+                            onEditClick = { viewModel.onEvent(SummariserUiEvent.NavigateToPromptEditor) }
                         )
                     }
 

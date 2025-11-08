@@ -118,22 +118,27 @@ class HomeViewModel @Inject constructor(
                 when (result) {
                     is Result.Success -> {
                         currentSubtitle = result.data.text
-                        _uiState.value = HomeUiState.Success(
-                            subtitle = result.data.text,
-                            videoTitle = result.data.videoTitle
-                        )
                         Logger.logI("HomeViewModel: Successfully loaded subtitles (${result.data.text.length} chars)")
 
                         // Cache the subtitle data for navigation
                         subtitleCacheRepository.cacheSubtitle(result.data)
                         Logger.logD("HomeViewModel: Subtitle cached for video ${result.data.videoId}")
 
-                        // Trigger navigation to Summariser screen
+                        // Trigger navigation to Summariser screen immediately
                         onNavigateToSummariser?.let { callback ->
                             Logger.logI("HomeViewModel: Triggering navigation to Summariser screen for video ${result.data.videoId}")
                             callback(result.data.videoId)
+
+                            // Reset to idle state after navigation to clear any displayed content
+                            _uiState.value = HomeUiState.Idle
+                            Logger.logD("HomeViewModel: Reset to Idle state after navigation")
                         } ?: run {
                             Logger.logW("HomeViewModel: Navigation callback not set, staying on Home screen")
+                            // Only show success state if navigation callback is not set
+                            _uiState.value = HomeUiState.Success(
+                                subtitle = result.data.text,
+                                videoTitle = result.data.videoTitle
+                            )
                         }
                     }
                     is Result.Error -> {

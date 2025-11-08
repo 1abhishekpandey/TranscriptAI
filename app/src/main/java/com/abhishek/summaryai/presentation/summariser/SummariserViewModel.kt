@@ -134,7 +134,6 @@ class SummariserViewModel @Inject constructor(
             is SummariserUiEvent.SelectPrompt -> selectPrompt(event.promptId)
             is SummariserUiEvent.CopyToClipboard -> copyToClipboard()
             is SummariserUiEvent.NavigateToPromptEditor -> navigateToPromptEditor()
-            is SummariserUiEvent.TogglePromptExpansion -> togglePromptExpansion()
         }
     }
 
@@ -202,14 +201,5 @@ class SummariserViewModel @Inject constructor(
     private fun navigateToPromptEditor() {
         Logger.logI("SummariserViewModel: Navigating to Prompt Editor")
         onNavigateToPromptEditor()
-    }
-
-    /**
-     * Toggle the expansion state of the prompt text display
-     */
-    private fun togglePromptExpansion() {
-        val newState = !_uiState.value.isPromptExpanded
-        Logger.logD("SummariserViewModel: Toggling prompt expansion to $newState")
-        _uiState.update { it.copy(isPromptExpanded = newState) }
     }
 }
