@@ -32,4 +32,11 @@ interface PromptRepository {
      * @param id The unique identifier of the prompt to delete
      */
     suspend fun deletePrompt(id: String)
+
+    /**
+     * Update the last selected timestamp for a prompt
+     * @param promptId The unique identifier of the prompt
+     * @param timestamp The timestamp when the prompt was selected
+     */
+    suspend fun updateLastSelectedTimestamp(promptId: String, timestamp: Long)
 }

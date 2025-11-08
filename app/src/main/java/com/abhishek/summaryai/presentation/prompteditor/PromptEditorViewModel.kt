@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.abhishek.summaryai.domain.model.EditorMode
 import com.abhishek.summaryai.domain.model.Prompt
+import com.abhishek.summaryai.domain.model.SummariserConfig
+import com.abhishek.summaryai.domain.repository.SummariserConfigRepository
 import com.abhishek.summaryai.domain.usecase.prompt.*
 import com.abhishek.summaryai.util.Logger
 import com.abhishek.summaryai.util.constants.SummariserConstants
@@ -19,7 +21,8 @@ class PromptEditorViewModel @Inject constructor(
     private val getPromptByIdUseCase: GetPromptByIdUseCase,
     private val savePromptUseCase: SavePromptUseCase,
     private val deletePromptUseCase: DeletePromptUseCase,
-    private val validatePromptUseCase: ValidatePromptUseCase
+    private val validatePromptUseCase: ValidatePromptUseCase,
+    private val configRepository: SummariserConfigRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(PromptEditorUiState())
@@ -193,12 +196,30 @@ class PromptEditorViewModel @Inject constructor(
         Logger.logI("PromptEditorViewModel: Confirming delete for prompt $promptId")
 
         viewModelScope.launch {
+            // Check if deleted prompt is the currently selected one
+            val currentConfig = configRepository.getConfig().first()
+            val isSelectedPrompt = currentConfig.selectedPromptId == promptId
+
             val result = deletePromptUseCase(promptId, _uiState.value.prompts)
 
             when (result) {
                 is com.abhishek.summaryai.domain.model.Result.Success -> {
                     Logger.logI("PromptEditorViewModel: Prompt deleted successfully")
                     onShowToast(SummariserConstants.MESSAGE_PROMPT_DELETED)
+
+                    // If the deleted prompt was the selected one, clear selection and auto-select next
+                    if (isSelectedPrompt) {
+                        Logger.logI("PromptEditorViewModel: Deleted prompt was selected, clearing selection")
+                        val remainingPrompts = _uiState.value.prompts.filter { it.id != promptId }
+                        val nextPrompt = remainingPrompts.firstOrNull()
+
+                        val newConfig = SummariserConfig(
+                            isAiSummariserEnabled = currentConfig.isAiSummariserEnabled,
+                            selectedPromptId = nextPrompt?.id
+                        )
+                        configRepository.updateConfig(newConfig)
+                        Logger.logD("PromptEditorViewModel: Auto-selected next prompt: ${nextPrompt?.id}")
+                    }
 
                     // If the deleted prompt was being edited, clear editor
                     if ((_uiState.value.editorMode as? EditorMode.Edit)?.promptId == promptId) {

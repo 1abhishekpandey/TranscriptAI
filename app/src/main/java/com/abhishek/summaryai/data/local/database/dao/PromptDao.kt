@@ -6,7 +6,7 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface PromptDao {
-    @Query("SELECT * FROM prompts ORDER BY createdAt DESC")
+    @Query("SELECT * FROM prompts ORDER BY CASE WHEN lastSelectedAt IS NULL THEN 0 ELSE 1 END DESC, lastSelectedAt DESC, createdAt DESC")
     fun getAllPrompts(): Flow<List<PromptEntity>>
 
     @Query("SELECT * FROM prompts WHERE id = :id")
@@ -23,4 +23,7 @@ interface PromptDao {
 
     @Query("SELECT COUNT(*) FROM prompts")
     suspend fun getPromptCount(): Int
+
+    @Query("UPDATE prompts SET lastSelectedAt = :timestamp WHERE id = :promptId")
+    suspend fun updateLastSelectedTimestamp(promptId: String, timestamp: Long)
 }

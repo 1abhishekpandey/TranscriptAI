@@ -30,4 +30,8 @@ class PromptRepositoryImpl(
     override suspend fun deletePrompt(id: String) {
         promptDao.deletePrompt(id)
     }
+
+    override suspend fun updateLastSelectedTimestamp(promptId: String, timestamp: Long) {
+        promptDao.updateLastSelectedTimestamp(promptId, timestamp)
+    }
 }

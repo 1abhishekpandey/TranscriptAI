@@ -3,6 +3,7 @@ package com.abhishek.summaryai.presentation.summariser
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.abhishek.summaryai.data.repository.SubtitleCacheRepository
+import com.abhishek.summaryai.domain.repository.PromptRepository
 import com.abhishek.summaryai.domain.usecase.config.GetSummariserConfigUseCase
 import com.abhishek.summaryai.domain.usecase.config.ToggleAiSummariserUseCase
 import com.abhishek.summaryai.domain.usecase.config.UpdateSummariserConfigUseCase
@@ -29,6 +30,7 @@ import javax.inject.Inject
 @HiltViewModel
 class SummariserViewModel @Inject constructor(
     private val subtitleCacheRepository: SubtitleCacheRepository,
+    private val promptRepository: PromptRepository,
     private val getPromptsUseCase: GetPromptsUseCase,
     private val getSummariserConfigUseCase: GetSummariserConfigUseCase,
     private val toggleAiSummariserUseCase: ToggleAiSummariserUseCase,
@@ -178,6 +180,12 @@ class SummariserViewModel @Inject constructor(
             _uiState.update { it.copy(selectedPrompt = prompt) }
 
             viewModelScope.launch {
+                // Update the last selected timestamp
+                val timestamp = System.currentTimeMillis()
+                promptRepository.updateLastSelectedTimestamp(promptId, timestamp)
+                Logger.logD("SummariserViewModel: Updated lastSelectedAt timestamp for prompt $promptId")
+
+                // Update config with selected prompt
                 val config = _uiState.value.run {
                     com.abhishek.summaryai.domain.model.SummariserConfig(
                         isAiSummariserEnabled = isAiSummariserEnabled,

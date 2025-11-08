@@ -10,5 +10,6 @@ data class PromptEntity(
     val text: String,
     val createdAt: Long,
     val lastModified: Long,
-    val isDefault: Boolean
+    val isDefault: Boolean,
+    val lastSelectedAt: Long? = null
 )

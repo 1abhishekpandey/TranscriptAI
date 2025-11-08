@@ -10,7 +10,8 @@ object PromptMapper {
             text = entity.text,
             createdAt = entity.createdAt,
             lastModified = entity.lastModified,
-            isDefault = entity.isDefault
+            isDefault = entity.isDefault,
+            lastSelectedAt = entity.lastSelectedAt
         )
     }
 
@@ -20,7 +21,8 @@ object PromptMapper {
             text = domain.text,
             createdAt = domain.createdAt,
             lastModified = domain.lastModified,
-            isDefault = domain.isDefault
+            isDefault = domain.isDefault,
+            lastSelectedAt = domain.lastSelectedAt
         )
     }
 
