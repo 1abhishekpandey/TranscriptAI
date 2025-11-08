@@ -31,6 +31,7 @@ import com.abhishek.summaryai.util.Logger
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
+    initialUrl: String? = null,
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -38,6 +39,11 @@ fun HomeScreen(
     val selectedLanguage by viewModel.selectedLanguage.collectAsState()
     val languageExpanded by viewModel.languageExpanded.collectAsState()
     val context = LocalContext.current
+
+    // Set initial URL from deep link (only once)
+    LaunchedEffect(initialUrl) {
+        viewModel.setInitialUrl(initialUrl)
+    }
 
     Logger.logV("HomeScreen: Recomposing with state: ${uiState::class.simpleName}")
 

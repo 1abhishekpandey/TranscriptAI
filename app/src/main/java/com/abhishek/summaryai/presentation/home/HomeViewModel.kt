@@ -143,6 +143,16 @@ class HomeViewModel @Inject constructor(
     }
 
     /**
+     * Set initial URL from deep link
+     */
+    fun setInitialUrl(url: String?) {
+        url?.let {
+            Logger.logI("HomeViewModel: Setting initial URL from deep link: $it")
+            _videoUrl.value = it
+        }
+    }
+
+    /**
      * Select a language
      */
     private fun selectLanguage(language: SubtitleLanguage) {
