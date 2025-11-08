@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:www.youtube.com)",
+      "Bash(curl:*)",
+      "WebSearch",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:medium.com)",
+      "Bash(git rm:*)",
+      "Bash(tree:*)",
+      "Bash(./gradlew assembleDebug:*)",
+      "Bash(./gradlew clean assembleDebug:*)",
+      "Bash(./gradlew:*)",
+      "Bash(find:*)",
+      "Bash(tee:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
