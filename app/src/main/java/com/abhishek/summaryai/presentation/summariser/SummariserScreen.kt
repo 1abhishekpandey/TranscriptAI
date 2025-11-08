@@ -3,7 +3,7 @@ package com.abhishek.summaryai.presentation.summariser
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -63,11 +63,13 @@ fun SummariserScreen(
         },
         floatingActionButton = {
             if (uiState.subtitleResult != null) {
-                FloatingActionButton(
-                    onClick = { viewModel.onEvent(SummariserUiEvent.CopyToClipboard) }
-                ) {
-                    Icon(Icons.Default.Share, contentDescription = "Copy to clipboard")
-                }
+                ExtendedFloatingActionButton(
+                    onClick = { viewModel.onEvent(SummariserUiEvent.CopyToClipboard) },
+                    icon = {
+                        Icon(Icons.Default.ContentCopy, contentDescription = null)
+                    },
+                    text = { Text("Copy") }
+                )
             }
         }
     ) { paddingValues ->
@@ -112,7 +114,7 @@ fun SummariserScreen(
                         .fillMaxSize()
                         .padding(paddingValues)
                         .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                    verticalArrangement = Arrangement.spacedBy(20.dp)
                 ) {
                     // AI Toggle Section
                     AiToggleSection(
