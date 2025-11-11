@@ -72,6 +72,7 @@ class SubtitleRepositoryImpl @Inject constructor(
      * Supports formats:
      * - https://www.youtube.com/watch?v=VIDEO_ID
      * - https://youtu.be/VIDEO_ID
+     * - https://www.youtube.com/live/VIDEO_ID
      * - VIDEO_ID (direct)
      */
     private fun extractVideoId(videoUrl: String): String {
@@ -80,6 +81,9 @@ class SubtitleRepositoryImpl @Inject constructor(
         return when {
             videoUrl.contains("youtube.com/watch") -> {
                 videoUrl.substringAfter("v=").substringBefore("&")
+            }
+            videoUrl.contains("youtube.com/live/") -> {
+                videoUrl.substringAfter("youtube.com/live/").substringBefore("?")
             }
             videoUrl.contains("youtu.be/") -> {
                 videoUrl.substringAfter("youtu.be/").substringBefore("?")

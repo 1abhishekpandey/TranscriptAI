@@ -50,6 +50,7 @@ downloader.clearCache()
 - `https://youtu.be/VIDEO_ID`
 - `https://www.youtube.com/embed/VIDEO_ID`
 - `https://m.youtube.com/watch?v=VIDEO_ID`
+- `https://www.youtube.com/live/VIDEO_ID`
 
 ## Key Features
 

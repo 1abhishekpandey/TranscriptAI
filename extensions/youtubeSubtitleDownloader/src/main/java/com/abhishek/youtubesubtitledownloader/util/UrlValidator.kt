@@ -13,7 +13,9 @@ object UrlValidator {
         // Embed URL: https://www.youtube.com/embed/VIDEO_ID
         """(?:https?://)?(?:www\.)?youtube\.com/embed/([a-zA-Z0-9_-]{11})""".toRegex(),
         // Mobile URL: https://m.youtube.com/watch?v=VIDEO_ID
-        """(?:https?://)?m\.youtube\.com/watch\?(?:.*&)?v=([a-zA-Z0-9_-]{11})""".toRegex()
+        """(?:https?://)?m\.youtube\.com/watch\?(?:.*&)?v=([a-zA-Z0-9_-]{11})""".toRegex(),
+        // Live URL: https://www.youtube.com/live/VIDEO_ID
+        """(?:https?://)?(?:www\.)?youtube\.com/live/([a-zA-Z0-9_-]{11})""".toRegex()
     )
 
     /**

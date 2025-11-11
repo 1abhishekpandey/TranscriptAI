@@ -13,9 +13,17 @@
       "Bash(./gradlew clean assembleDebug:*)",
       "Bash(./gradlew:*)",
       "Bash(find:*)",
-      "Bash(tee:*)"
+      "Bash(tee:*)",
+      "Bash(gh release:*)",
+      "Bash(cat:*)",
+      "Bash(python3:*)",
+      "Skill(commit-helper)"
     ],
     "deny": [],
     "ask": []
+  },
+  "sandbox": {
+    "autoAllowBashIfSandboxed": false,
+    "enabled": false
   }
 }
