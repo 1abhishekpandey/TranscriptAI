@@ -129,7 +129,29 @@ class AIShareRepositoryImpl(
                 type = "text/plain"
                 putExtra(Intent.EXTRA_TEXT, text)
                 setPackage(target.packageName)
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+
+                // Different flag combinations for different apps
+                when (target) {
+                    ShareTarget.CHATGPT -> {
+                        // ChatGPT needs to be restarted fresh to properly receive ACTION_SEND
+                        // FLAG_ACTIVITY_NEW_TASK: Start in a new task
+                        // FLAG_ACTIVITY_CLEAR_TASK: Clear entire task stack, forcing fresh start
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+                        Log.d(TAG, "Using CLEAR_TASK flags for ChatGPT to ensure fresh start")
+                    }
+                    ShareTarget.CLAUDE -> {
+                        // Claude handles existing instances well with CLEAR_TOP
+                        // FLAG_ACTIVITY_NEW_TASK: Start in a new task
+                        // FLAG_ACTIVITY_CLEAR_TOP: Clear activities on top to deliver intent to existing activity
+                        // FLAG_ACTIVITY_SINGLE_TOP: Ensure only one instance exists
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                        Log.d(TAG, "Using CLEAR_TOP flags for Claude")
+                    }
+                    else -> {
+                        // Default behavior
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+                }
             }
 
             // Check if the intent can be resolved
