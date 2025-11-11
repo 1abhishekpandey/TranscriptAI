@@ -7,8 +7,15 @@
     <!-- Package visibility queries for Android 11+ (API 30+) -->
     <!-- Required to detect and share to ChatGPT and Claude apps -->
     <queries>
+        <!-- Specific AI app packages -->
         <package android:name="com.openai.chatgpt" />
         <package android:name="com.anthropic.claude" />
+
+        <!-- Query for apps that accept text sharing via ACTION_SEND -->
+        <intent>
+            <action android:name="android.intent.action.SEND" />
+            <data android:mimeType="text/plain" />
+        </intent>
     </queries>
 
     <application

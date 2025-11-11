@@ -12,8 +12,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.abhishek.transcriptai.presentation.summariser.components.*
-import com.abhishek.transcriptai.util.clipboard.ClipboardHelper
-import com.abhishek.transcriptai.util.share.ShareHelper
 
 /**
  * Summariser Screen - Main screen for AI summarizer feature
@@ -40,17 +38,10 @@ fun SummariserScreen(
     viewModel: SummariserViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val context = LocalContext.current
 
-    // Set callbacks
+    // Set navigation callback and load subtitle
     LaunchedEffect(Unit) {
         viewModel.onNavigateToPromptEditor = onNavigateToPromptEditor
-        viewModel.onCopyToClipboard = { text ->
-            ClipboardHelper.copyToClipboard(context, text, "AI Summarizer")
-        }
-        viewModel.onShareToApp = { text, packageName ->
-            ShareHelper.shareToApp(context, text, packageName)
-        }
         viewModel.loadSubtitle(videoId)
     }
 

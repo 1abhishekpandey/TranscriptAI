@@ -17,7 +17,8 @@
       "Bash(gh release:*)",
       "Bash(cat:*)",
       "Bash(python3:*)",
-      "Skill(commit-helper)"
+      "Skill(commit-helper)",
+      "mcp__ide__getDiagnostics"
     ],
     "deny": [],
     "ask": []

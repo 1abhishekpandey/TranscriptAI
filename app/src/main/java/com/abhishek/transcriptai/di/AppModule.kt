@@ -4,10 +4,12 @@ import android.content.Context
 import com.abhishek.transcriptai.data.local.database.AppDatabase
 import com.abhishek.transcriptai.data.local.database.dao.PromptDao
 import com.abhishek.transcriptai.data.local.preferences.SummariserPreferences
+import com.abhishek.transcriptai.data.repository.AIShareRepositoryImpl
 import com.abhishek.transcriptai.data.repository.PromptRepositoryImpl
 import com.abhishek.transcriptai.data.repository.SubtitleCacheRepository
 import com.abhishek.transcriptai.data.repository.SubtitleRepositoryImpl
 import com.abhishek.transcriptai.data.repository.SummariserConfigRepositoryImpl
+import com.abhishek.transcriptai.domain.repository.AIShareRepository
 import com.abhishek.transcriptai.domain.repository.PromptRepository
 import com.abhishek.transcriptai.domain.repository.SubtitleRepository
 import com.abhishek.transcriptai.domain.repository.SummariserConfigRepository
@@ -166,5 +168,18 @@ object AppModule {
     fun provideSubtitleCacheRepository(): SubtitleCacheRepository {
         Logger.logD("AppModule: Providing SubtitleCacheRepository")
         return SubtitleCacheRepository()
+    }
+
+    /**
+     * Provides AIShareRepository implementation
+     * Handles sharing content to AI applications (ChatGPT, Claude)
+     */
+    @Provides
+    @Singleton
+    fun provideAIShareRepository(
+        @ApplicationContext context: Context
+    ): AIShareRepository {
+        Logger.logD("AppModule: Providing AIShareRepository")
+        return AIShareRepositoryImpl(context)
     }
 }

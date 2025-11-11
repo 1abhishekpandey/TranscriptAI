@@ -29,27 +29,50 @@ app/src/main/java/com/abhishek/TranscriptAI/
 ├── MainActivity.kt                   # Main entry point (@AndroidEntryPoint)
 │
 ├── util/                             # Utilities
-│   └── Logger.kt                     # Centralized logging (Tag: "TranscriptAI", Default: VERBOSE)
+│   ├── Logger.kt                     # Centralized logging (Tag: "TranscriptAI", Default: VERBOSE)
+│   ├── clipboard/                    # Clipboard utilities
+│   │   └── ClipboardHelper.kt        # Clipboard operations
+│   └── share/                        # Sharing utilities
+│       └── ShareHelper.kt            # Legacy sharing helper (being replaced by AIShareRepository)
 │
 ├── domain/                           # Domain Layer (No Android dependencies)
 │   ├── model/                        # Domain entities
+│   │   ├── ShareTarget.kt            # Share target enum (ChatGPT, Claude, Clipboard)
+│   │   └── ...                       # Other models
 │   ├── repository/                   # Repository interfaces
+│   │   ├── AIShareRepository.kt      # AI app sharing interface
+│   │   └── ...                       # Other repositories
 │   └── usecase/                      # Use cases
+│       ├── subtitle/                 # Subtitle-related use cases
+│       │   └── FormatSubtitleForCopyUseCase.kt  # Format subtitle with AI prompt
+│       └── ...                       # Other use cases
 │
 ├── data/                             # Data Layer
 │   ├── repository/                   # Repository implementations
+│   │   ├── AIShareRepositoryImpl.kt  # AI sharing implementation (ACTION_SEND + fallbacks)
+│   │   ├── SubtitleCacheRepository.kt # In-memory subtitle cache
+│   │   └── ...                       # Other repositories
 │   ├── local/                        # Database, SharedPreferences, entities
 │   ├── remote/                       # API services, DTOs (if needed)
 │   └── mapper/                       # Data ↔ Domain mappers
 │
 ├── presentation/                     # Presentation Layer
-│   └── home/                         # Home screen
-│       ├── HomeUiState.kt            # UI state
-│       ├── HomeViewModel.kt          # ViewModel
-│       └── HomeScreen.kt             # Composable UI
+│   ├── home/                         # Home screen
+│   │   ├── HomeUiState.kt            # UI state
+│   │   ├── HomeViewModel.kt          # ViewModel
+│   │   └── HomeScreen.kt             # Composable UI
+│   └── summariser/                   # AI Summariser screen
+│       ├── SummariserScreen.kt       # Main composable
+│       ├── SummariserViewModel.kt    # ViewModel with AI sharing logic
+│       ├── SummariserUiState.kt      # UI state
+│       ├── SummariserUiEvent.kt      # UI events
+│       └── components/               # Screen components
+│           ├── ShareBottomSheet.kt   # Share options bottom sheet
+│           └── ...                   # Other components
 │
 ├── di/                               # Dependency Injection (Hilt)
-│   └── AppModule.kt                  # Hilt modules
+│   ├── AppModule.kt                  # Main Hilt module (includes AIShareRepository)
+│   └── UseCaseModule.kt              # Use case providers
 │
 └── ui/theme/                         # Theme & Design
     ├── Color.kt
@@ -95,6 +118,73 @@ Presentation → Domain ← Data
 - Coordinates with `DownloadSubtitlesUseCase`
 - Comprehensive logging at each step
 
+### AI Sharing System (ChatGPT & Claude Integration)
+
+**Location**: `presentation/summariser/` + `domain/repository/AIShareRepository.kt` + `data/repository/AIShareRepositoryImpl.kt`
+
+**Features**:
+- Share subtitles directly to ChatGPT or Claude apps
+- Copy to clipboard functionality
+- Smart sharing with multiple fallback strategies
+- Automatic AI prompt prepending (when AI Summariser is enabled)
+
+**Architecture** (Clean Architecture):
+```
+SummariserViewModel (Presentation)
+        ↓
+AIShareRepository (Domain - Interface)
+        ↑
+AIShareRepositoryImpl (Data - Implementation)
+```
+
+**Sharing Strategy**:
+1. **Primary**: ACTION_SEND intent to target app (prefills text if supported)
+2. **Fallback**: Copy to clipboard + Launch app (user manually pastes)
+3. **Error Handling**: Toast notifications with user feedback
+
+**UI Components**:
+- `ShareBottomSheet.kt` - Modal bottom sheet with share options:
+  - Copy to Clipboard (always available)
+  - Share to ChatGPT (requires app installed + AI enabled)
+  - Share to Claude (requires app installed + AI enabled)
+- Share button (FAB) appears when subtitle is loaded
+- Options auto-disable based on app installation status
+
+**Domain Models**:
+- `ShareTarget` enum: `CHATGPT`, `CLAUDE`, `CLIPBOARD`
+
+**Repository Interface** (`AIShareRepository`):
+- `shareToApp(text, target)` - Share text to specified app
+- `isAppInstalled(target)` - Check if app is installed
+- `supportsDirectSharing(target)` - Check ACTION_SEND support
+- `copyToClipboard(text, label)` - Copy to system clipboard
+
+**Implementation Details**:
+- Uses Android ACTION_SEND intent for direct sharing
+- Falls back to clipboard + launch if ACTION_SEND not supported
+- Automatically formats subtitle with AI prompt (via `FormatSubtitleForCopyUseCase`)
+- Dismisses share sheet after successful share
+- Comprehensive logging for debugging
+
+**AndroidManifest Requirements**:
+```xml
+<queries>
+    <package android:name="com.openai.chatgpt" />
+    <package android:name="com.anthropic.claude" />
+    <intent>
+        <action android:name="android.intent.action.SEND" />
+        <data android:mimeType="text/plain" />
+    </intent>
+</queries>
+```
+
+**Usage Flow**:
+1. User taps Share FAB → Bottom sheet appears
+2. User selects ChatGPT/Claude/Clipboard
+3. ViewModel calls `aiShareRepository.shareToApp()`
+4. Repository tries ACTION_SEND, falls back if needed
+5. Toast confirms action, sheet dismisses
+
 ### Logging System
 
 **Location**: `util/Logger.kt`
@@ -124,33 +214,66 @@ Logger.logExit("methodName")
 **Modules** (`di/AppModule.kt`):
 - `provideOkHttpClient()` - OkHttp with logging
 - `provideRetrofit()` - Retrofit instance
-- `provideSubtitleRepository()` - Repository implementation
+- `provideYouTubeSubtitleDownloader()` - YouTube subtitle downloader extension
+- `provideSubtitleRepository()` - Subtitle repository implementation
+- `provideAppDatabase()` - Room database instance
+- `providePromptDao()` - Prompt data access object
+- `providePromptRepository()` - Prompt repository implementation
+- `provideSummariserPreferences()` - AI summariser preferences
+- `provideSummariserConfigRepository()` - Summariser config repository
+- `provideSubtitleCacheRepository()` - In-memory subtitle cache
+- `provideAIShareRepository()` - AI sharing repository (ChatGPT/Claude)
 
 ## Implementation Status
 
 ### ✅ Implemented
 
-1. Complete UI (single screen)
-2. MVVM Architecture
-3. Clean Architecture layers
-4. Logging system with TranscriptAI tag
-5. Dependency Injection (Hilt)
-6. Mock data for UI testing
+1. **Core Features**:
+   - YouTube subtitle downloading (via extension integration)
+   - URL parsing and video ID extraction
+   - Subtitle display with scrollable text area
+   - Deep link handling for YouTube URLs
 
-### 🚧 Pending Integration
+2. **AI Summariser Feature**:
+   - AI prompt management (CRUD operations via Room DB)
+   - Prompt selection dropdown
+   - AI toggle switch
+   - Subtitle formatting with AI prompt prepending
+   - In-memory subtitle caching between screens
+
+3. **Sharing System**:
+   - Share to ChatGPT app (ACTION_SEND + clipboard fallback)
+   - Share to Claude app (ACTION_SEND + clipboard fallback)
+   - Copy to clipboard functionality
+   - Smart app detection (Android 11+ package visibility)
+   - Modal bottom sheet with share options
+   - Auto-disable unavailable options
+
+4. **Architecture & Infrastructure**:
+   - MVVM Architecture with Clean Architecture layers
+   - Dependency Injection (Hilt)
+   - Centralized logging system (TranscriptAI tag)
+   - Room database for prompt storage
+   - SharedPreferences for config storage
+   - Jetpack Compose UI (100% declarative)
+
+5. **UI/UX**:
+   - Material3 design system
+   - Edge-to-edge display
+   - Loading states with progress messages
+   - Error handling with user-friendly messages
+   - Extended FAB for share action
+   - Responsive layouts
+
+### ✅ Fully Integrated
 
 **YouTube Subtitle Downloader Extension**:
 - **Location**: `extensions/youtubeSubtitleDownloader/`
-- **Integration Point**: `data/repository/SubtitleRepositoryImpl.kt:27`
-- **TODO**: Replace mock data with actual extension call
+- **Status**: Fully integrated and working
+- **Integration**: `data/repository/SubtitleRepositoryImpl.kt` uses extension
+- **Features**: Auto language detection, subtitle parsing, error handling
 
-**Next Steps**:
-1. Add extension dependency to `app/build.gradle.kts`
-2. Update `SubtitleRepositoryImpl` to use extension
-3. Handle extension's `SubtitleResult` response
-4. Remove mock data
-
-See [Extension Documentation](../extensions/youtubeSubtitleDownloader/CLAUDE.md) for usage details.
+See [Extension Documentation](../extensions/youtubeSubtitleDownloader/CLAUDE.md) for extension details.
 
 ## Development Workflow
 
@@ -306,24 +429,26 @@ adb logcat -s TranscriptAI
 
 ## Known Limitations
 
-1. **Mock Data**: Currently returns placeholder subtitle text
-2. **No Persistence**: Subtitles not cached (in-memory only)
-3. **Single Language**: No language selection (extension handles)
-4. **No Retry**: User must manually retry failed downloads
-5. **No Cancellation**: Can't cancel ongoing download
+1. **Single Language**: No language selection UI (extension auto-detects best available language)
+2. **No Persistence**: Subtitles cached in-memory only (cleared on app restart)
+3. **No Retry UI**: User must manually retry failed downloads
+4. **No Cancellation**: Can't cancel ongoing download
+5. **ACTION_SEND Uncertainty**: ChatGPT/Claude ACTION_SEND support not officially documented (fallback ensures it always works)
 
 ## Future Enhancements
 
-- [ ] Language selection dropdown
-- [ ] Subtitle caching (Room DB)
-- [ ] Export to file functionality
-- [ ] Share to ChatGPT/Claude integration
+- [ ] Language selection dropdown (show available languages from extension)
+- [ ] Persistent subtitle caching (save to Room DB for offline access)
+- [ ] Export to file functionality (.txt, .srt formats)
 - [ ] Dark mode toggle
-- [ ] Subtitle search/filter
-- [ ] Download history
+- [ ] Subtitle search/filter within text
+- [ ] Download history screen
 - [ ] Batch download for playlists
-- [ ] Settings screen
-- [ ] Error retry mechanism
+- [ ] Settings screen (language preference, cache management)
+- [ ] Error retry mechanism with exponential backoff
+- [ ] Share to other apps (Notion, Obsidian, email)
+- [ ] Subtitle editing before sharing
+- [ ] Multiple prompt templates for different use cases
 
 ## Testing Strategy
 
@@ -357,7 +482,7 @@ See [Coding Standards](../docs/coding-standards.md) for testing guidelines.
 
 ---
 
-**Last Updated**: 2025-11-09
+**Last Updated**: 2025-11-12
 **App Version**: 1.0.0 (versionCode 1)
 
 For complete details on any topic, refer to the linked documentation files in the `docs/` directory.

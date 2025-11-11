@@ -3,6 +3,8 @@ package com.abhishek.transcriptai.presentation.summariser
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.abhishek.transcriptai.data.repository.SubtitleCacheRepository
+import com.abhishek.transcriptai.domain.model.ShareTarget
+import com.abhishek.transcriptai.domain.repository.AIShareRepository
 import com.abhishek.transcriptai.domain.repository.PromptRepository
 import com.abhishek.transcriptai.domain.usecase.config.GetSummariserConfigUseCase
 import com.abhishek.transcriptai.domain.usecase.config.ToggleAiSummariserUseCase
@@ -18,14 +20,16 @@ import javax.inject.Inject
 
 /**
  * ViewModel for the Summariser screen
- * Manages subtitle display, AI prompt selection, and copy functionality
+ * Manages subtitle display, AI prompt selection, and sharing functionality
  *
  * @property subtitleCacheRepository Repository for accessing cached subtitle data
+ * @property promptRepository Repository for managing prompts
  * @property getPromptsUseCase Use case for retrieving available prompts
  * @property getSummariserConfigUseCase Use case for getting AI summariser configuration
  * @property toggleAiSummariserUseCase Use case for toggling AI summariser on/off
  * @property updateSummariserConfigUseCase Use case for updating summariser configuration
  * @property formatSubtitleForCopyUseCase Use case for formatting subtitle with prompt before copying
+ * @property aiShareRepository Repository for sharing content to AI applications
  */
 @HiltViewModel
 class SummariserViewModel @Inject constructor(
@@ -35,15 +39,14 @@ class SummariserViewModel @Inject constructor(
     private val getSummariserConfigUseCase: GetSummariserConfigUseCase,
     private val toggleAiSummariserUseCase: ToggleAiSummariserUseCase,
     private val updateSummariserConfigUseCase: UpdateSummariserConfigUseCase,
-    private val formatSubtitleForCopyUseCase: FormatSubtitleForCopyUseCase
+    private val formatSubtitleForCopyUseCase: FormatSubtitleForCopyUseCase,
+    private val aiShareRepository: AIShareRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SummariserUiState())
     val uiState: StateFlow<SummariserUiState> = _uiState.asStateFlow()
 
     var onNavigateToPromptEditor: () -> Unit = {}
-    var onCopyToClipboard: (String) -> Unit = {}
-    var onShareToApp: (String, String) -> Unit = { _, _ -> } // (text, packageName)
 
     init {
         Logger.logD("SummariserViewModel: Initializing")
@@ -234,20 +237,22 @@ class SummariserViewModel @Inject constructor(
             val formattedText = formatSubtitleForCopyUseCase(subtitle)
             Logger.logI("SummariserViewModel: Formatted text length: ${formattedText.length}")
 
-            when (option) {
-                ShareOption.CLIPBOARD -> {
-                    Logger.logD("SummariserViewModel: Copying to clipboard")
-                    onCopyToClipboard(formattedText)
-                }
-                ShareOption.CHATGPT -> {
-                    Logger.logD("SummariserViewModel: Sharing to ChatGPT")
-                    onShareToApp(formattedText, "com.openai.chatgpt")
-                }
-                ShareOption.CLAUDE -> {
-                    Logger.logD("SummariserViewModel: Sharing to Claude")
-                    onShareToApp(formattedText, "com.anthropic.claude")
-                }
+            val shareTarget = when (option) {
+                ShareOption.CLIPBOARD -> ShareTarget.CLIPBOARD
+                ShareOption.CHATGPT -> ShareTarget.CHATGPT
+                ShareOption.CLAUDE -> ShareTarget.CLAUDE
             }
+
+            Logger.logD("SummariserViewModel: Sharing to ${shareTarget.displayName}")
+            val result = aiShareRepository.shareToApp(formattedText, shareTarget)
+
+            if (result.isSuccess) {
+                Logger.logI("SummariserViewModel: Successfully shared to ${shareTarget.displayName}")
+            } else {
+                Logger.logE("SummariserViewModel: Failed to share to ${shareTarget.displayName}: ${result.exceptionOrNull()?.message}")
+            }
+
+            dismissShareSheet()
         }
     }
 
