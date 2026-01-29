@@ -28,9 +28,19 @@ internal object XmlSubtitleParser {
 
             var eventType = parser.eventType
             while (eventType != XmlPullParser.END_DOCUMENT) {
-                if (eventType == XmlPullParser.START_TAG && parser.name == "text") {
-                    val segment = parseTextTag(parser)
-                    segment?.let { segments.add(it) }
+                if (eventType == XmlPullParser.START_TAG) {
+                    when (parser.name) {
+                        // Old format: <text start="0.0" dur="1.5">Hello</text>
+                        "text" -> {
+                            val segment = parseTextTag(parser)
+                            segment?.let { segments.add(it) }
+                        }
+                        // New SRV3 format: <p t="0" d="1500"><s>Hello</s><s>world</s></p>
+                        "p" -> {
+                            val paragraphSegments = parseParagraphTag(parser)
+                            segments.addAll(paragraphSegments)
+                        }
+                    }
                 }
                 eventType = parser.next()
             }
@@ -45,7 +55,7 @@ internal object XmlSubtitleParser {
     }
 
     /**
-     * Parse a single <text> tag
+     * Parse a single <text> tag (old format)
      */
     private fun parseTextTag(parser: XmlPullParser): SubtitleSegmentDto? {
         return try {
@@ -70,6 +80,67 @@ internal object XmlSubtitleParser {
         } catch (e: Exception) {
             SubtitleLogger.w("Failed to parse text tag", e)
             null
+        }
+    }
+
+    /**
+     * Parse a <p> tag (SRV3 format paragraph)
+     * Format: <p t="0" d="1500"><s>Hello</s><s>world</s></p>
+     * - t: start time in milliseconds
+     * - d: duration in milliseconds
+     */
+    private fun parseParagraphTag(parser: XmlPullParser): List<SubtitleSegmentDto> {
+        return try {
+            // Get timing attributes (in milliseconds)
+            val startMs = parser.getAttributeValue(null, "t")?.toLongOrNull() ?: 0L
+            val durationMs = parser.getAttributeValue(null, "d")?.toLongOrNull() ?: 0L
+
+            // Convert to seconds
+            val start = startMs / 1000f
+            val duration = durationMs / 1000f
+
+            // Collect all <s> segments within this paragraph
+            val textSegments = mutableListOf<String>()
+            var depth = 1 // Track nested depth
+
+            parser.next()
+            while (depth > 0 && parser.eventType != XmlPullParser.END_DOCUMENT) {
+                when (parser.eventType) {
+                    XmlPullParser.START_TAG -> {
+                        if (parser.name == "s") {
+                            // Parse segment text
+                            parser.next()
+                            if (parser.eventType == XmlPullParser.TEXT) {
+                                textSegments.add(parser.text)
+                            }
+                        }
+                        depth++
+                    }
+                    XmlPullParser.END_TAG -> {
+                        depth--
+                    }
+                }
+                if (depth > 0) parser.next()
+            }
+
+            // Combine all segments into one subtitle segment
+            val combinedText = textSegments.joinToString(" ")
+            val decodedText = decodeHtmlEntities(combinedText)
+
+            if (decodedText.isNotBlank()) {
+                listOf(
+                    SubtitleSegmentDto(
+                        text = decodedText.trim(),
+                        startTime = start,
+                        duration = duration
+                    )
+                )
+            } else {
+                emptyList()
+            }
+        } catch (e: Exception) {
+            SubtitleLogger.w("Failed to parse paragraph tag", e)
+            emptyList()
         }
     }
 

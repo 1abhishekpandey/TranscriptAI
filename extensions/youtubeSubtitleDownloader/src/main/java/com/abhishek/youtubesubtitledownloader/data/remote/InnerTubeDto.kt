@@ -13,8 +13,11 @@ internal data class ContextDto(
 )
 
 internal data class ClientDto(
-    val clientName: String = "WEB",
-    val clientVersion: String = "2.20241108.01.00"
+    val clientName: String = "ANDROID",
+    val clientVersion: String = "19.09.37",
+    val androidSdkVersion: Int = 30,
+    val hl: String = "en",
+    val gl: String = "US"
 )
 
 /**

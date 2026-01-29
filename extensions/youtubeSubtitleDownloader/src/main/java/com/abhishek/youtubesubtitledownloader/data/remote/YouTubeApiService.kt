@@ -62,8 +62,11 @@ internal class YouTubeApiService {
         val requestBody = JSONObject().apply {
             put("context", JSONObject().apply {
                 put("client", JSONObject().apply {
-                    put("clientName", "WEB")
-                    put("clientVersion", "2.20241108.01.00")
+                    put("clientName", "ANDROID")
+                    put("clientVersion", "19.09.37")
+                    put("androidSdkVersion", 30)
+                    put("hl", "en")
+                    put("gl", "US")
                 })
             })
             put("videoId", videoId)
@@ -160,10 +163,14 @@ internal class YouTubeApiService {
             val tracks = mutableListOf<CaptionTrackDto>()
             for (i in 0 until captionTracks.length()) {
                 val track = captionTracks.getJSONObject(i)
+
+                // Extract name - handle multiple formats: simpleText, runs array, or missing
+                val nameText = extractNameFromTrack(track)
+
                 tracks.add(
                     CaptionTrackDto(
                         baseUrl = track.getString("baseUrl"),
-                        name = NameDto(track.getJSONObject("name").getString("simpleText")),
+                        name = NameDto(nameText),
                         languageCode = track.getString("languageCode"),
                         kind = track.optString("kind", null),
                         isTranslatable = track.optBoolean("isTranslatable", false)
@@ -180,6 +187,38 @@ internal class YouTubeApiService {
         } catch (e: Exception) {
             SubtitleLogger.e("Failed to parse caption tracks", e)
             emptyList()
+        }
+    }
+
+    /**
+     * Extract name text from track JSON, handling multiple formats
+     * Formats: { "name": { "simpleText": "English" } }
+     *       or { "name": { "runs": [{ "text": "English" }] } }
+     *       or missing entirely
+     */
+    private fun extractNameFromTrack(track: JSONObject): String {
+        return try {
+            val nameObj = track.optJSONObject("name")
+            when {
+                // Format 1: simpleText
+                nameObj?.has("simpleText") == true -> {
+                    nameObj.getString("simpleText")
+                }
+                // Format 2: runs array
+                nameObj?.has("runs") == true -> {
+                    val runs = nameObj.getJSONArray("runs")
+                    if (runs.length() > 0) {
+                        runs.getJSONObject(0).optString("text", track.getString("languageCode"))
+                    } else {
+                        track.getString("languageCode")
+                    }
+                }
+                // Fallback: use languageCode
+                else -> track.getString("languageCode")
+            }
+        } catch (e: Exception) {
+            // Final fallback: use languageCode
+            track.optString("languageCode", "unknown")
         }
     }
 
