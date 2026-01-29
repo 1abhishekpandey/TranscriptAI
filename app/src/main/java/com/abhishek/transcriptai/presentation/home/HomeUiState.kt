@@ -72,6 +72,11 @@ sealed class HomeUiEvent {
      * User toggled auto-share preference
      */
     data class ToggleAutoShare(val enabled: Boolean) : HomeUiEvent()
+
+    /**
+     * User selected target app for auto-sharing
+     */
+    data class SelectAutoShareApp(val app: String) : HomeUiEvent()
 }
 
 /**

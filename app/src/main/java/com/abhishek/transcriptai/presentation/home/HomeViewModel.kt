@@ -47,6 +47,10 @@ class HomeViewModel @Inject constructor(
     private val _autoShareEnabled = MutableStateFlow(false)
     val autoShareEnabled: StateFlow<Boolean> = _autoShareEnabled.asStateFlow()
 
+    // Selected app for auto-sharing (default is ChatGPT)
+    private val _selectedApp = MutableStateFlow("chatgpt")
+    val selectedApp: StateFlow<String> = _selectedApp.asStateFlow()
+
     private var currentSubtitle: String = ""
 
     // Navigation callback - set from UI layer
@@ -56,10 +60,12 @@ class HomeViewModel @Inject constructor(
         Logger.logI("HomeViewModel: Initialized")
         Logger.logD("HomeViewModel: Default language: ${SubtitleLanguage.ENGLISH.displayName}")
 
-        // Load auto-share preference
+        // Load auto-share preferences
         viewModelScope.launch {
             _autoShareEnabled.value = autoShareConfigRepository.isAutoShareEnabled()
+            _selectedApp.value = autoShareConfigRepository.getSelectedApp()
             Logger.logI("HomeViewModel: Auto-share preference loaded: ${_autoShareEnabled.value}")
+            Logger.logI("HomeViewModel: Selected app loaded: ${_selectedApp.value}")
         }
     }
 
@@ -101,6 +107,9 @@ class HomeViewModel @Inject constructor(
             }
             is HomeUiEvent.ToggleAutoShare -> {
                 toggleAutoShare(event.enabled)
+            }
+            is HomeUiEvent.SelectAutoShareApp -> {
+                selectAutoShareApp(event.app)
             }
         }
     }
@@ -267,6 +276,19 @@ class HomeViewModel @Inject constructor(
             autoShareConfigRepository.setAutoShareEnabled(enabled)
             _autoShareEnabled.value = enabled
             Logger.logD("HomeViewModel: Auto-share preference saved")
+        }
+    }
+
+    /**
+     * Select target app for auto-sharing
+     */
+    private fun selectAutoShareApp(app: String) {
+        Logger.logI("HomeViewModel: Auto-share app selected: $app")
+
+        viewModelScope.launch {
+            autoShareConfigRepository.setSelectedApp(app)
+            _selectedApp.value = app
+            Logger.logD("HomeViewModel: Auto-share app preference saved")
         }
     }
 

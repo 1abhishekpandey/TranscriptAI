@@ -47,6 +47,7 @@ fun HomeScreen(
     val selectedLanguage by viewModel.selectedLanguage.collectAsState()
     val languageExpanded by viewModel.languageExpanded.collectAsState()
     val autoShareEnabled by viewModel.autoShareEnabled.collectAsState()
+    val selectedApp by viewModel.selectedApp.collectAsState()
     val context = LocalContext.current
 
     // Set initial URL from deep link (only once)
@@ -74,7 +75,9 @@ fun HomeScreen(
         bottomBar = {
             AutoShareToggleBar(
                 enabled = autoShareEnabled,
-                onToggle = { viewModel.onEvent(HomeUiEvent.ToggleAutoShare(it)) }
+                selectedApp = selectedApp,
+                onToggle = { viewModel.onEvent(HomeUiEvent.ToggleAutoShare(it)) },
+                onSelectApp = { viewModel.onEvent(HomeUiEvent.SelectAutoShareApp(it)) }
             )
         }
     ) { paddingValues ->
@@ -436,42 +439,123 @@ private fun LanguageOption(
 /**
  * Auto-Share Toggle Bar
  * Displays toggle for enabling/disabling auto-share feature
+ * and app selector when enabled
  */
 @Composable
 private fun AutoShareToggleBar(
     enabled: Boolean,
-    onToggle: (Boolean) -> Unit
+    selectedApp: String,
+    onToggle: (Boolean) -> Unit,
+    onSelectApp: (String) -> Unit
 ) {
     Surface(
         tonalElevation = 3.dp,
         modifier = Modifier.fillMaxWidth()
     ) {
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Column(
-                modifier = Modifier.weight(1f)
+            // Toggle row
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = "Auto-share to ChatGPT",
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Text(
-                    text = "Automatically share transcripts when opening from YouTube",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                Column(
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(
+                        text = "Auto-share when opening from YouTube",
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Text(
+                        text = "Automatically share transcripts when opening from YouTube",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Spacer(modifier = Modifier.width(16.dp))
+                Switch(
+                    checked = enabled,
+                    onCheckedChange = onToggle
                 )
             }
-            Spacer(modifier = Modifier.width(16.dp))
-            Switch(
-                checked = enabled,
-                onCheckedChange = onToggle
-            )
+
+            // App selector (visible when enabled)
+            AnimatedVisibility(
+                visible = enabled,
+                enter = expandVertically(),
+                exit = shrinkVertically()
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(24.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Share to:",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+
+                    // ChatGPT radio button
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.clickable { onSelectApp("chatgpt") }
+                    ) {
+                        RadioButton(
+                            selected = selectedApp == "chatgpt",
+                            onClick = { onSelectApp("chatgpt") },
+                            colors = RadioButtonDefaults.colors(
+                                selectedColor = MaterialTheme.colorScheme.primary
+                            )
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "ChatGPT",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = if (selectedApp == "chatgpt") {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.onSurface
+                            },
+                            fontWeight = if (selectedApp == "chatgpt") FontWeight.SemiBold else FontWeight.Normal
+                        )
+                    }
+
+                    // Claude radio button
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.clickable { onSelectApp("claude") }
+                    ) {
+                        RadioButton(
+                            selected = selectedApp == "claude",
+                            onClick = { onSelectApp("claude") },
+                            colors = RadioButtonDefaults.colors(
+                                selectedColor = MaterialTheme.colorScheme.primary
+                            )
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "Claude",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = if (selectedApp == "claude") {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.onSurface
+                            },
+                            fontWeight = if (selectedApp == "claude") FontWeight.SemiBold else FontWeight.Normal
+                        )
+                    }
+                }
+            }
         }
     }
 }

@@ -28,4 +28,15 @@ class AutoShareConfigRepositoryImpl @Inject constructor(
             preferences.setAutoShareEnabled(enabled)
         }
     }
+
+    override suspend fun getSelectedApp(): String =
+        withContext(Dispatchers.IO) {
+            preferences.getSelectedApp()
+        }
+
+    override suspend fun setSelectedApp(app: String) {
+        withContext(Dispatchers.IO) {
+            preferences.setSelectedApp(app)
+        }
+    }
 }

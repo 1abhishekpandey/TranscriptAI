@@ -6,6 +6,7 @@ import com.abhishek.transcriptai.data.repository.SubtitleCacheRepository
 import com.abhishek.transcriptai.domain.model.Result
 import com.abhishek.transcriptai.domain.model.ShareTarget
 import com.abhishek.transcriptai.domain.repository.AIShareRepository
+import com.abhishek.transcriptai.domain.repository.AutoShareConfigRepository
 import com.abhishek.transcriptai.domain.repository.PromptRepository
 import com.abhishek.transcriptai.domain.usecase.DownloadSubtitlesUseCase
 import com.abhishek.transcriptai.domain.usecase.config.GetSummariserConfigUseCase
@@ -34,6 +35,7 @@ import javax.inject.Inject
  * @property updateSummariserConfigUseCase Use case for updating summariser configuration
  * @property formatSubtitleForCopyUseCase Use case for formatting subtitle with prompt before copying
  * @property aiShareRepository Repository for sharing content to AI applications
+ * @property autoShareConfigRepository Repository for managing auto-share configuration
  */
 @HiltViewModel
 class SummariserViewModel @Inject constructor(
@@ -45,7 +47,8 @@ class SummariserViewModel @Inject constructor(
     private val toggleAiSummariserUseCase: ToggleAiSummariserUseCase,
     private val updateSummariserConfigUseCase: UpdateSummariserConfigUseCase,
     private val formatSubtitleForCopyUseCase: FormatSubtitleForCopyUseCase,
-    private val aiShareRepository: AIShareRepository
+    private val aiShareRepository: AIShareRepository,
+    private val autoShareConfigRepository: AutoShareConfigRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SummariserUiState())
@@ -166,13 +169,28 @@ class SummariserViewModel @Inject constructor(
         Logger.logI("SummariserViewModel: Triggering auto-share")
 
         viewModelScope.launch {
-            // Check if ChatGPT is installed
-            val isChatGptInstalled = aiShareRepository.isAppInstalled(ShareTarget.CHATGPT)
+            // Get selected app from user preferences
+            val selectedApp = autoShareConfigRepository.getSelectedApp()
+            Logger.logI("SummariserViewModel: Selected auto-share app: $selectedApp")
 
-            if (isChatGptInstalled) {
-                // Auto-share to ChatGPT
-                Logger.logI("SummariserViewModel: Auto-sharing to ChatGPT")
-                handleShareOption(ShareOption.CHATGPT)
+            // Map selected app string to ShareTarget
+            val targetApp = when (selectedApp) {
+                "claude" -> ShareTarget.CLAUDE
+                else -> ShareTarget.CHATGPT // Default to ChatGPT for "chatgpt" or any other value
+            }
+
+            // Check if selected app is installed
+            val isAppInstalled = aiShareRepository.isAppInstalled(targetApp)
+
+            if (isAppInstalled) {
+                // Auto-share to selected app
+                Logger.logI("SummariserViewModel: Auto-sharing to ${targetApp.displayName}")
+                val shareOption = when (targetApp) {
+                    ShareTarget.CLAUDE -> ShareOption.CLAUDE
+                    ShareTarget.CHATGPT -> ShareOption.CHATGPT
+                    else -> ShareOption.CHATGPT // Fallback (should never happen)
+                }
+                handleShareOption(shareOption)
 
                 // Wait for share to complete, then close app
                 delay(500)
@@ -180,7 +198,7 @@ class SummariserViewModel @Inject constructor(
                 onFinishActivity?.invoke()
             } else {
                 // Show share options (fallback) - don't close app
-                Logger.logI("SummariserViewModel: ChatGPT not installed, showing share options")
+                Logger.logI("SummariserViewModel: ${targetApp.displayName} not installed, showing share options")
                 _uiState.update { it.copy(showShareSheet = true) }
             }
 

@@ -21,4 +21,18 @@ interface AutoShareConfigRepository {
      * @param enabled true to enable auto-share, false to disable
      */
     suspend fun setAutoShareEnabled(enabled: Boolean)
+
+    /**
+     * Gets the selected app for auto-sharing.
+     *
+     * @return app identifier ("chatgpt" or "claude")
+     */
+    suspend fun getSelectedApp(): String
+
+    /**
+     * Sets the selected app for auto-sharing.
+     *
+     * @param app app identifier ("chatgpt" or "claude")
+     */
+    suspend fun setSelectedApp(app: String)
 }
