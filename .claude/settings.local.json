@@ -1,4 +1,7 @@
 {
+  "env": {
+    "CLAUDE_CODE_TASK_LIST_ID": "TranscriptAI"
+  },
   "permissions": {
     "allow": [
       "WebFetch(domain:www.youtube.com)",
@@ -18,13 +21,14 @@
       "Bash(cat:*)",
       "Bash(python3:*)",
       "Skill(commit-helper)",
-      "mcp__ide__getDiagnostics"
+      "mcp__ide__getDiagnostics",
+      "Bash(kotlinc:*)"
     ],
     "deny": [],
     "ask": []
   },
   "sandbox": {
-    "autoAllowBashIfSandboxed": false,
-    "enabled": false
+    "enabled": false,
+    "autoAllowBashIfSandboxed": false
   }
 }
