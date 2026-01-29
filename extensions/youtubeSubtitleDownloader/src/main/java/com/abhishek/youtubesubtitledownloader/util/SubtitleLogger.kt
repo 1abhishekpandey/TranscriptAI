@@ -8,7 +8,7 @@ import android.util.Log
  * Default log level: VERBOSE
  */
 object SubtitleLogger {
-    private const val TAG = "TranscriptAIYouTubeSubtitleDownloader"
+    private const val TAG = "TranscriptAI-YouTubeSubtitleDownloader"
 
     @Volatile
     var logLevel: LogLevel = LogLevel.VERBOSE

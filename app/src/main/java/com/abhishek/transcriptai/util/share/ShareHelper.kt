@@ -12,7 +12,7 @@ import android.widget.Toast
  * Helper object for sharing text to various apps
  */
 object ShareHelper {
-    private const val TAG = "ShareHelper"
+    private const val TAG = "TranscriptAI-ShareHelper"
 
     // Package names for popular AI apps
     const val CHATGPT_PACKAGE = "com.openai.chatgpt"

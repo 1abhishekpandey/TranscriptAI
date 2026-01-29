@@ -25,7 +25,7 @@ class AIShareRepositoryImpl(
 ) : AIShareRepository {
 
     companion object {
-        private const val TAG = "AIShareRepository"
+        private const val TAG = "TranscriptAI-ShareRepository"
     }
 
     /**
