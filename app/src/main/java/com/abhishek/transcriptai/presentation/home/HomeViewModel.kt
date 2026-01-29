@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.abhishek.transcriptai.data.repository.SubtitleCacheRepository
 import com.abhishek.transcriptai.domain.model.Result
+import com.abhishek.transcriptai.domain.repository.AutoShareConfigRepository
 import com.abhishek.transcriptai.domain.usecase.DownloadSubtitlesUseCase
 import com.abhishek.transcriptai.util.Logger
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -19,11 +20,13 @@ import javax.inject.Inject
  *
  * @param downloadSubtitlesUseCase Use case for downloading subtitles
  * @param subtitleCacheRepository Repository for caching subtitle data
+ * @param autoShareConfigRepository Repository for auto-share configuration
  */
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val downloadSubtitlesUseCase: DownloadSubtitlesUseCase,
-    private val subtitleCacheRepository: SubtitleCacheRepository
+    private val subtitleCacheRepository: SubtitleCacheRepository,
+    private val autoShareConfigRepository: AutoShareConfigRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<HomeUiState>(HomeUiState.Idle)
@@ -40,6 +43,10 @@ class HomeViewModel @Inject constructor(
     private val _languageExpanded = MutableStateFlow(false)
     val languageExpanded: StateFlow<Boolean> = _languageExpanded.asStateFlow()
 
+    // Auto-share enabled state
+    private val _autoShareEnabled = MutableStateFlow(false)
+    val autoShareEnabled: StateFlow<Boolean> = _autoShareEnabled.asStateFlow()
+
     private var currentSubtitle: String = ""
 
     // Navigation callback - set from UI layer
@@ -48,6 +55,12 @@ class HomeViewModel @Inject constructor(
     init {
         Logger.logI("HomeViewModel: Initialized")
         Logger.logD("HomeViewModel: Default language: ${SubtitleLanguage.ENGLISH.displayName}")
+
+        // Load auto-share preference
+        viewModelScope.launch {
+            _autoShareEnabled.value = autoShareConfigRepository.isAutoShareEnabled()
+            Logger.logI("HomeViewModel: Auto-share preference loaded: ${_autoShareEnabled.value}")
+        }
     }
 
     /**
@@ -85,6 +98,9 @@ class HomeViewModel @Inject constructor(
             }
             is HomeUiEvent.ClearContent -> {
                 clearContent()
+            }
+            is HomeUiEvent.ToggleAutoShare -> {
+                toggleAutoShare(event.enabled)
             }
         }
     }
@@ -239,6 +255,19 @@ class HomeViewModel @Inject constructor(
         subtitleCacheRepository.clearCache()
 
         Logger.logD("HomeViewModel: All content cleared, reset to initial state")
+    }
+
+    /**
+     * Toggle auto-share preference
+     */
+    private fun toggleAutoShare(enabled: Boolean) {
+        Logger.logI("HomeViewModel: Auto-share toggled to $enabled")
+
+        viewModelScope.launch {
+            autoShareConfigRepository.setAutoShareEnabled(enabled)
+            _autoShareEnabled.value = enabled
+            Logger.logD("HomeViewModel: Auto-share preference saved")
+        }
     }
 
     override fun onCleared() {

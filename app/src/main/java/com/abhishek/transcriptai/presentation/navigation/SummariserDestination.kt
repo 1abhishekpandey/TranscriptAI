@@ -14,18 +14,30 @@ sealed class SummariserDestination(val route: String) {
 
     /**
      * Summariser screen - shows subtitle with AI summarization options
-     * Requires videoId as path parameter
+     * Supports two modes:
+     * - Manual mode: videoId provided (subtitle loaded from cache)
+     * - Auto-share mode: autoDownload=true (URL retrieved from repository)
      */
-    object Summariser : SummariserDestination("summariser/{videoId}") {
+    object Summariser : SummariserDestination("summariser?videoId={videoId}&autoDownload={autoDownload}") {
         /**
-         * Creates route with actual videoId value
-         */
-        fun createRoute(videoId: String) = "summariser/$videoId"
-
-        /**
-         * Argument key for video ID
+         * Argument keys
          */
         const val ARG_VIDEO_ID = "videoId"
+        const val ARG_AUTO_DOWNLOAD = "autoDownload"
+
+        /**
+         * Creates route for manual mode (subtitle already downloaded)
+         */
+        fun createRoute(videoId: String): String {
+            return "summariser?videoId=$videoId&autoDownload=false"
+        }
+
+        /**
+         * Creates route for auto-download mode (URL stored in repository)
+         */
+        fun createAutoDownloadRoute(): String {
+            return "summariser?videoId=&autoDownload=true"
+        }
     }
 
     /**

@@ -67,6 +67,11 @@ sealed class HomeUiEvent {
      * User clicked the clear button to reset everything
      */
     data object ClearContent : HomeUiEvent()
+
+    /**
+     * User toggled auto-share preference
+     */
+    data class ToggleAutoShare(val enabled: Boolean) : HomeUiEvent()
 }
 
 /**

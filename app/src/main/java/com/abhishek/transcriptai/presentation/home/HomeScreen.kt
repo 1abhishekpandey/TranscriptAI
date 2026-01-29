@@ -46,6 +46,7 @@ fun HomeScreen(
     val videoUrl by viewModel.videoUrl.collectAsState()
     val selectedLanguage by viewModel.selectedLanguage.collectAsState()
     val languageExpanded by viewModel.languageExpanded.collectAsState()
+    val autoShareEnabled by viewModel.autoShareEnabled.collectAsState()
     val context = LocalContext.current
 
     // Set initial URL from deep link (only once)
@@ -68,6 +69,12 @@ fun HomeScreen(
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
                     titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
                 )
+            )
+        },
+        bottomBar = {
+            AutoShareToggleBar(
+                enabled = autoShareEnabled,
+                onToggle = { viewModel.onEvent(HomeUiEvent.ToggleAutoShare(it)) }
             )
         }
     ) { paddingValues ->
@@ -423,6 +430,49 @@ private fun LanguageOption(
             },
             fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
         )
+    }
+}
+
+/**
+ * Auto-Share Toggle Bar
+ * Displays toggle for enabling/disabling auto-share feature
+ */
+@Composable
+private fun AutoShareToggleBar(
+    enabled: Boolean,
+    onToggle: (Boolean) -> Unit
+) {
+    Surface(
+        tonalElevation = 3.dp,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    text = "Auto-share to ChatGPT",
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    text = "Automatically share transcripts when opening from YouTube",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Spacer(modifier = Modifier.width(16.dp))
+            Switch(
+                checked = enabled,
+                onCheckedChange = onToggle
+            )
+        }
     }
 }
 

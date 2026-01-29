@@ -8,13 +8,18 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.rememberNavController
+import com.abhishek.transcriptai.data.repository.SubtitleCacheRepository
+import com.abhishek.transcriptai.domain.repository.AutoShareConfigRepository
 import com.abhishek.transcriptai.presentation.navigation.SummariserNavGraph
 import com.abhishek.transcriptai.ui.theme.TranscriptAITheme
 import com.abhishek.transcriptai.util.Logger
 import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 
 /**
  * Main Activity for TranscriptAI
@@ -25,6 +30,13 @@ import dagger.hilt.android.AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
     private val sharedUrl = mutableStateOf<String?>(null)
+    private val isFromShareIntent = mutableStateOf(false)
+
+    @Inject
+    lateinit var autoShareConfig: AutoShareConfigRepository
+
+    @Inject
+    lateinit var subtitleCacheRepository: SubtitleCacheRepository
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -37,6 +49,13 @@ class MainActivity : ComponentActivity() {
         setContent {
             TranscriptAITheme {
                 val navController = rememberNavController()
+                val autoShareEnabled = remember { mutableStateOf(false) }
+
+                // Load auto-share preference
+                LaunchedEffect(Unit) {
+                    autoShareEnabled.value = autoShareConfig.isAutoShareEnabled()
+                    Logger.logI("MainActivity: Auto-share enabled = ${autoShareEnabled.value}")
+                }
 
                 Surface(
                     modifier = Modifier.fillMaxSize(),
@@ -45,7 +64,10 @@ class MainActivity : ComponentActivity() {
                     SummariserNavGraph(
                         navController = navController,
                         modifier = Modifier.fillMaxSize(),
-                        initialUrl = sharedUrl.value
+                        initialUrl = sharedUrl.value,
+                        isFromShareIntent = isFromShareIntent.value,
+                        autoShareEnabled = autoShareEnabled.value,
+                        subtitleCacheRepository = subtitleCacheRepository
                     )
                 }
             }
@@ -84,6 +106,7 @@ class MainActivity : ComponentActivity() {
                         if (url != null) {
                             Logger.logI("MainActivity: Extracted YouTube URL - $url")
                             sharedUrl.value = url
+                            isFromShareIntent.value = true
                         } else {
                             Logger.logW("MainActivity: No YouTube URL found in shared text")
                         }

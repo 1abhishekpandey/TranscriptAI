@@ -1,15 +1,18 @@
 package com.abhishek.transcriptai.di
 
 import android.content.Context
+import com.abhishek.transcriptai.data.local.AutoSharePreferences
 import com.abhishek.transcriptai.data.local.database.AppDatabase
 import com.abhishek.transcriptai.data.local.database.dao.PromptDao
 import com.abhishek.transcriptai.data.local.preferences.SummariserPreferences
 import com.abhishek.transcriptai.data.repository.AIShareRepositoryImpl
+import com.abhishek.transcriptai.data.repository.AutoShareConfigRepositoryImpl
 import com.abhishek.transcriptai.data.repository.PromptRepositoryImpl
 import com.abhishek.transcriptai.data.repository.SubtitleCacheRepository
 import com.abhishek.transcriptai.data.repository.SubtitleRepositoryImpl
 import com.abhishek.transcriptai.data.repository.SummariserConfigRepositoryImpl
 import com.abhishek.transcriptai.domain.repository.AIShareRepository
+import com.abhishek.transcriptai.domain.repository.AutoShareConfigRepository
 import com.abhishek.transcriptai.domain.repository.PromptRepository
 import com.abhishek.transcriptai.domain.repository.SubtitleRepository
 import com.abhishek.transcriptai.domain.repository.SummariserConfigRepository
@@ -181,5 +184,31 @@ object AppModule {
     ): AIShareRepository {
         Logger.logD("AppModule: Providing AIShareRepository")
         return AIShareRepositoryImpl(context)
+    }
+
+    /**
+     * Provides AutoSharePreferences instance
+     * Manages auto-share configuration using SharedPreferences
+     */
+    @Provides
+    @Singleton
+    fun provideAutoSharePreferences(
+        @ApplicationContext context: Context
+    ): AutoSharePreferences {
+        Logger.logD("AppModule: Providing AutoSharePreferences")
+        return AutoSharePreferences(context)
+    }
+
+    /**
+     * Provides AutoShareConfigRepository implementation
+     * Handles configuration for automatic sharing feature
+     */
+    @Provides
+    @Singleton
+    fun provideAutoShareConfigRepository(
+        preferences: AutoSharePreferences
+    ): AutoShareConfigRepository {
+        Logger.logD("AppModule: Providing AutoShareConfigRepository")
+        return AutoShareConfigRepositoryImpl(preferences)
     }
 }

@@ -13,6 +13,7 @@ import com.abhishek.transcriptai.domain.model.SubtitleResult
  * @property isLoading Whether the screen is in loading state
  * @property error Error message if any
  * @property showShareSheet Whether to show the share bottom sheet
+ * @property shouldAutoShare Whether auto-share should be triggered (auto-download mode)
  */
 data class SummariserUiState(
     val subtitleResult: SubtitleResult? = null,
@@ -21,5 +22,6 @@ data class SummariserUiState(
     val isAiSummariserEnabled: Boolean = true,
     val isLoading: Boolean = false,
     val error: String? = null,
-    val showShareSheet: Boolean = false
+    val showShareSheet: Boolean = false,
+    val shouldAutoShare: Boolean = false
 )

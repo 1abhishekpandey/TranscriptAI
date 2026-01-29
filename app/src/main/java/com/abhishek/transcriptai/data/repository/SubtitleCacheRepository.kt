@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.asStateFlow
  *
  * Purpose: Share subtitle data between Home screen and Summariser screen
  * without passing large strings through navigation arguments
+ * Also stores pending URLs for auto-share mode
  *
  * Lifecycle: Scoped to Application (singleton)
  * Thread-safety: StateFlow handles concurrent access
@@ -20,6 +21,9 @@ class SubtitleCacheRepository {
 
     private val _cachedSubtitle = MutableStateFlow<SubtitleResult?>(null)
     val cachedSubtitle: StateFlow<SubtitleResult?> = _cachedSubtitle.asStateFlow()
+
+    private var pendingUrl: String? = null
+    private var pendingAutoShare: Boolean = false
 
     init {
         Logger.logD("SubtitleCacheRepository: Initialized")
@@ -70,5 +74,40 @@ class SubtitleCacheRepository {
      */
     fun getCurrentCache(): SubtitleResult? {
         return _cachedSubtitle.value
+    }
+
+    /**
+     * Stores a pending URL for auto-share mode
+     * Used when navigating from share intent to avoid URL encoding issues in navigation
+     *
+     * @param url The YouTube URL to download
+     * @param autoShare Whether to auto-share after download
+     */
+    fun setPendingUrl(url: String, autoShare: Boolean) {
+        Logger.logI("SubtitleCacheRepository: Setting pending URL for auto-share: $url (autoShare=$autoShare)")
+        pendingUrl = url
+        pendingAutoShare = autoShare
+    }
+
+    /**
+     * Retrieves and clears the pending URL
+     * Returns null if no pending URL is set
+     *
+     * @return Pair of (url, autoShare) or null
+     */
+    fun consumePendingUrl(): Pair<String, Boolean>? {
+        val url = pendingUrl
+        val autoShare = pendingAutoShare
+
+        if (url != null) {
+            Logger.logI("SubtitleCacheRepository: Consuming pending URL: $url (autoShare=$autoShare)")
+            // Clear pending state
+            pendingUrl = null
+            pendingAutoShare = false
+            return Pair(url, autoShare)
+        }
+
+        Logger.logD("SubtitleCacheRepository: No pending URL to consume")
+        return null
     }
 }

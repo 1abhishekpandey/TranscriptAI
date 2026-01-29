@@ -3,9 +3,11 @@ package com.abhishek.transcriptai.presentation.summariser
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.abhishek.transcriptai.data.repository.SubtitleCacheRepository
+import com.abhishek.transcriptai.domain.model.Result
 import com.abhishek.transcriptai.domain.model.ShareTarget
 import com.abhishek.transcriptai.domain.repository.AIShareRepository
 import com.abhishek.transcriptai.domain.repository.PromptRepository
+import com.abhishek.transcriptai.domain.usecase.DownloadSubtitlesUseCase
 import com.abhishek.transcriptai.domain.usecase.config.GetSummariserConfigUseCase
 import com.abhishek.transcriptai.domain.usecase.config.ToggleAiSummariserUseCase
 import com.abhishek.transcriptai.domain.usecase.config.UpdateSummariserConfigUseCase
@@ -14,6 +16,7 @@ import com.abhishek.transcriptai.domain.usecase.subtitle.FormatSubtitleForCopyUs
 import com.abhishek.transcriptai.presentation.summariser.components.ShareOption
 import com.abhishek.transcriptai.util.Logger
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -22,6 +25,7 @@ import javax.inject.Inject
  * ViewModel for the Summariser screen
  * Manages subtitle display, AI prompt selection, and sharing functionality
  *
+ * @property downloadSubtitlesUseCase Use case for downloading subtitles (auto-share mode)
  * @property subtitleCacheRepository Repository for accessing cached subtitle data
  * @property promptRepository Repository for managing prompts
  * @property getPromptsUseCase Use case for retrieving available prompts
@@ -33,6 +37,7 @@ import javax.inject.Inject
  */
 @HiltViewModel
 class SummariserViewModel @Inject constructor(
+    private val downloadSubtitlesUseCase: DownloadSubtitlesUseCase,
     private val subtitleCacheRepository: SubtitleCacheRepository,
     private val promptRepository: PromptRepository,
     private val getPromptsUseCase: GetPromptsUseCase,
@@ -47,6 +52,7 @@ class SummariserViewModel @Inject constructor(
     val uiState: StateFlow<SummariserUiState> = _uiState.asStateFlow()
 
     var onNavigateToPromptEditor: () -> Unit = {}
+    var onFinishActivity: (() -> Unit)? = null
 
     init {
         Logger.logD("SummariserViewModel: Initializing")
@@ -55,7 +61,7 @@ class SummariserViewModel @Inject constructor(
     }
 
     /**
-     * Load subtitle data for the given video ID from cache
+     * Load subtitle data for the given video ID from cache (manual mode)
      *
      * @param videoId The YouTube video ID
      */
@@ -74,6 +80,112 @@ class SummariserViewModel @Inject constructor(
                     isLoading = false
                 )
             }
+        }
+    }
+
+    /**
+     * Initialize with auto-download mode
+     * Downloads subtitle from URL and triggers auto-share when ready
+     *
+     * @param url YouTube video URL
+     * @param autoShare Whether to auto-share after download
+     */
+    fun initializeWithAutoDownload(url: String, autoShare: Boolean) {
+        Logger.logI("SummariserViewModel: Auto-downloading subtitle for URL: $url")
+
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, error = null) }
+
+            when (val result = downloadSubtitlesUseCase(url)) {
+                is Result.Success -> {
+                    Logger.logI("SummariserViewModel: Auto-download successful - videoId: ${result.data.videoId}")
+
+                    // Cache the subtitle for potential navigation
+                    subtitleCacheRepository.cacheSubtitle(result.data)
+
+                    _uiState.update {
+                        it.copy(
+                            subtitleResult = result.data,
+                            isLoading = false,
+                            shouldAutoShare = autoShare
+                        )
+                    }
+                }
+                is Result.Error -> {
+                    Logger.logE("SummariserViewModel: Auto-download failed - ${result.message}")
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            error = result.message
+                        )
+                    }
+                }
+                is Result.Loading -> {
+                    // Keep loading state
+                    Logger.logV("SummariserViewModel: Download still in progress")
+                }
+            }
+        }
+    }
+
+    /**
+     * Initialize with auto-download mode from repository
+     * Consumes pending URL from SubtitleCacheRepository and downloads
+     */
+    fun initializeWithAutoDownloadFromRepository() {
+        Logger.logI("SummariserViewModel: Consuming pending URL from repository")
+
+        val pendingData = subtitleCacheRepository.consumePendingUrl()
+
+        if (pendingData != null) {
+            val (url, autoShare) = pendingData
+            Logger.logI("SummariserViewModel: Found pending URL: $url (autoShare=$autoShare)")
+            initializeWithAutoDownload(url, autoShare)
+        } else {
+            Logger.logE("SummariserViewModel: No pending URL found in repository")
+            _uiState.update {
+                it.copy(
+                    isLoading = false,
+                    error = "No URL provided for download. Please try sharing again."
+                )
+            }
+        }
+    }
+
+    /**
+     * Trigger auto-share if needed
+     * Called when subtitle is ready and auto-share is enabled
+     */
+    fun triggerAutoShareIfNeeded() {
+        val currentState = _uiState.value
+
+        if (!currentState.shouldAutoShare || currentState.subtitleResult == null) {
+            return
+        }
+
+        Logger.logI("SummariserViewModel: Triggering auto-share")
+
+        viewModelScope.launch {
+            // Check if ChatGPT is installed
+            val isChatGptInstalled = aiShareRepository.isAppInstalled(ShareTarget.CHATGPT)
+
+            if (isChatGptInstalled) {
+                // Auto-share to ChatGPT
+                Logger.logI("SummariserViewModel: Auto-sharing to ChatGPT")
+                handleShareOption(ShareOption.CHATGPT)
+
+                // Wait for share to complete, then close app
+                delay(500)
+                Logger.logI("SummariserViewModel: Closing TranscriptAI app")
+                onFinishActivity?.invoke()
+            } else {
+                // Show share options (fallback) - don't close app
+                Logger.logI("SummariserViewModel: ChatGPT not installed, showing share options")
+                _uiState.update { it.copy(showShareSheet = true) }
+            }
+
+            // Clear auto-share flag (only trigger once)
+            _uiState.update { it.copy(shouldAutoShare = false) }
         }
     }
 
