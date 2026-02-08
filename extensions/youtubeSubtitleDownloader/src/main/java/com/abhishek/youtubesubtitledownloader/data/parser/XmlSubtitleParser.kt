@@ -17,7 +17,8 @@ internal object XmlSubtitleParser {
      * @return List of subtitle segments
      */
     fun parseXml(xml: String): List<SubtitleSegmentDto> {
-        SubtitleLogger.logStep("XML Parsing", "Starting to parse transcript XML")
+        SubtitleLogger.logStep("XML Parsing", "Starting to parse transcript XML (${xml.length} chars)")
+        SubtitleLogger.d("XML preview: ${xml.take(300)}")
 
         val segments = mutableListOf<SubtitleSegmentDto>()
 
@@ -115,6 +116,13 @@ internal object XmlSubtitleParser {
                             }
                         }
                         depth++
+                    }
+                    XmlPullParser.TEXT -> {
+                        // Handle direct text inside <p> (no <s> wrapper)
+                        val text = parser.text?.trim()
+                        if (!text.isNullOrBlank()) {
+                            textSegments.add(text)
+                        }
                     }
                     XmlPullParser.END_TAG -> {
                         depth--
