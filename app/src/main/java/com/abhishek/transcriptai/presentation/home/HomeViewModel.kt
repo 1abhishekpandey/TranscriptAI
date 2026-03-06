@@ -7,6 +7,7 @@ import com.abhishek.transcriptai.domain.model.Result
 import com.abhishek.transcriptai.domain.repository.AutoShareConfigRepository
 import com.abhishek.transcriptai.domain.usecase.DownloadSubtitlesUseCase
 import com.abhishek.transcriptai.util.Logger
+import com.abhishek.youtubesubtitledownloader.YouTubeSubtitleDownloader
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -26,7 +27,8 @@ import javax.inject.Inject
 class HomeViewModel @Inject constructor(
     private val downloadSubtitlesUseCase: DownloadSubtitlesUseCase,
     private val subtitleCacheRepository: SubtitleCacheRepository,
-    private val autoShareConfigRepository: AutoShareConfigRepository
+    private val autoShareConfigRepository: AutoShareConfigRepository,
+    private val youtubeSubtitleDownloader: YouTubeSubtitleDownloader
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<HomeUiState>(HomeUiState.Idle)
@@ -56,6 +58,9 @@ class HomeViewModel @Inject constructor(
     // Navigation callback - set from UI layer
     private var onNavigateToSummariser: ((videoId: String) -> Unit)? = null
 
+    // Version input navigation callback
+    private var onNavigateToVersionInput: (() -> Unit)? = null
+
     init {
         Logger.logI("HomeViewModel: Initialized")
         Logger.logD("HomeViewModel: Default language: ${SubtitleLanguage.ENGLISH.displayName}")
@@ -78,6 +83,24 @@ class HomeViewModel @Inject constructor(
     fun setNavigationCallback(callback: (videoId: String) -> Unit) {
         Logger.logD("HomeViewModel: Navigation callback set")
         onNavigateToSummariser = callback
+    }
+
+    /**
+     * Set navigation callback for navigating to Version Input screen
+     * Called from UI layer when client version is outdated
+     *
+     * @param callback Navigation callback function
+     */
+    fun setVersionInputNavigationCallback(callback: () -> Unit) {
+        Logger.logD("HomeViewModel: Version input navigation callback set")
+        onNavigateToVersionInput = callback
+    }
+
+    /**
+     * Navigate to Version Input screen
+     */
+    fun navigateToVersionInput() {
+        onNavigateToVersionInput?.invoke()
     }
 
     /**
@@ -167,8 +190,17 @@ class HomeViewModel @Inject constructor(
                         }
                     }
                     is Result.Error -> {
-                        _uiState.value = HomeUiState.Error(result.message)
-                        Logger.logE("HomeViewModel: Error loading subtitles: ${result.message}", result.exception)
+                        if (result.errorType == "CLIENT_VERSION_OUTDATED") {
+                            val currentVersion = youtubeSubtitleDownloader.getCurrentClientVersion()
+                            _uiState.value = HomeUiState.VersionOutdated(
+                                message = result.message,
+                                currentVersion = currentVersion
+                            )
+                            Logger.logW("HomeViewModel: Client version outdated. Current: $currentVersion")
+                        } else {
+                            _uiState.value = HomeUiState.Error(result.message)
+                            Logger.logE("HomeViewModel: Error loading subtitles: ${result.message}", result.exception)
+                        }
                     }
                     is Result.Loading -> {
                         // Already in loading state

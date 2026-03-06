@@ -40,6 +40,7 @@ fun HomeScreen(
     modifier: Modifier = Modifier,
     initialUrl: String? = null,
     onNavigateToSummariser: (videoId: String) -> Unit = {},
+    onNavigateToVersionInput: () -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -58,6 +59,11 @@ fun HomeScreen(
     // Set navigation callback
     LaunchedEffect(onNavigateToSummariser) {
         viewModel.setNavigationCallback(onNavigateToSummariser)
+    }
+
+    // Set version input navigation callback
+    LaunchedEffect(onNavigateToVersionInput) {
+        viewModel.setVersionInputNavigationCallback(onNavigateToVersionInput)
     }
 
     Logger.logV("HomeScreen: Recomposing with state: ${uiState::class.simpleName}")
@@ -126,7 +132,7 @@ fun HomeScreen(
             }
 
             // Clear Button - shown when text is entered or error occurred
-            if (videoUrl.isNotBlank() || uiState is HomeUiState.Error) {
+            if (videoUrl.isNotBlank() || uiState is HomeUiState.Error || uiState is HomeUiState.VersionOutdated) {
                 OutlinedButton(
                     onClick = {
                         Logger.logD("HomeScreen: Clear button clicked")
@@ -171,6 +177,13 @@ fun HomeScreen(
                 }
                 is HomeUiState.Error -> {
                     ErrorContent(message = state.message)
+                }
+                is HomeUiState.VersionOutdated -> {
+                    VersionOutdatedContent(
+                        message = state.message,
+                        currentVersion = state.currentVersion,
+                        onFixClick = { viewModel.navigateToVersionInput() }
+                    )
                 }
             }
         }
@@ -308,6 +321,46 @@ private fun ErrorContent(message: String) {
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onErrorContainer
             )
+        }
+    }
+}
+
+@Composable
+private fun VersionOutdatedContent(
+    message: String,
+    currentVersion: String,
+    onFixClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.errorContainer
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(
+                text = "Version Outdated",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.error
+            )
+            Text(
+                text = "YouTube has rejected the current client version ($currentVersion). You can provide a newer version to fix this.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onErrorContainer
+            )
+            Button(
+                onClick = onFixClick,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.error
+                )
+            ) {
+                Text("Fix Version")
+            }
         }
     }
 }

@@ -43,6 +43,15 @@ YouTubeSubtitleDownloader.setLogLevel(LogLevel.ERROR)
 
 // Clear cached API key
 downloader.clearCache()
+
+// Get current client version
+val version = downloader.getCurrentClientVersion()
+
+// Test a specific version
+val works = downloader.testClientVersion("VIDEO_ID", "21.10.38")
+
+// Manually set version
+downloader.setClientVersion("21.10.38")
 ```
 
 ### Supported URL Formats
@@ -105,8 +114,9 @@ See detailed guide: [YouTube InnerTube API](../../docs/youtube-innertube-api.md)
 
 **Summary**:
 1. Extract INNERTUBE_API_KEY from YouTube page (cached for 24h)
-2. Call InnerTube Player API to get caption track metadata
-3. Fetch transcript XML from track URL and parse
+2. Call InnerTube Player API with ANDROID client to get caption track metadata
+3. If version rejected: auto-probe upward by major version (up to +5)
+4. Fetch transcript XML from track URL and parse (strip fmt=srv3)
 
 ## Configuration
 
@@ -207,7 +217,7 @@ See [Coding Standards](../../docs/coding-standards.md) for detailed guidelines.
 
 ## Known Limitations
 
-1. **Undocumented API** - YouTube can change it without notice
+1. **Undocumented API** - Can break at any time; client version is auto-probed when rejected, with manual override fallback
 2. **Rate Limiting** - Too many requests may trigger IP blocking
 3. **Terms of Service** - Using this API may violate YouTube ToS
 4. **API Key Rotation** - 24h cache TTL may be too long if key rotates frequently

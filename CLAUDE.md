@@ -178,6 +178,7 @@ See [YouTube Subtitle Downloader Extension CLAUDE.md](extensions/youtubeSubtitle
 - Compose is enabled (buildFeatures.compose = true)
 - Edge-to-edge display enabled in MainActivity
 - No ProGuard rules for debug builds
+- InnerTube ANDROID client version is auto-probed when rejected (up to +5 major versions), with manual override fallback via Version Input screen; see [YouTube InnerTube API Guide](docs/youtube-innertube-api.md)
 
 ## Extensions & Modules
 

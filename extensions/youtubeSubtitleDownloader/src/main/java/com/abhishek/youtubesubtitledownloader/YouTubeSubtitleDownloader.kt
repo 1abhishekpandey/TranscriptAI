@@ -2,6 +2,7 @@ package com.abhishek.youtubesubtitledownloader
 
 import android.content.Context
 import com.abhishek.youtubesubtitledownloader.cache.ApiKeyCache
+import com.abhishek.youtubesubtitledownloader.cache.ClientVersionCache
 import com.abhishek.youtubesubtitledownloader.data.remote.YouTubeApiService
 import com.abhishek.youtubesubtitledownloader.data.repository.SubtitleRepositoryImpl
 import com.abhishek.youtubesubtitledownloader.domain.model.SubtitleResult
@@ -44,8 +45,9 @@ import com.abhishek.youtubesubtitledownloader.util.SubtitleLogger
 class YouTubeSubtitleDownloader private constructor(context: Context) {
 
     private val apiKeyCache: ApiKeyCache = ApiKeyCache(context.applicationContext)
+    private val clientVersionCache: ClientVersionCache = ClientVersionCache(context.applicationContext)
     private val apiService: YouTubeApiService = YouTubeApiService()
-    private val repository: SubtitleRepositoryImpl = SubtitleRepositoryImpl(apiService, apiKeyCache)
+    private val repository: SubtitleRepositoryImpl = SubtitleRepositoryImpl(apiService, apiKeyCache, clientVersionCache)
     private val downloadUseCase: DownloadSubtitlesUseCase = DownloadSubtitlesUseCase(repository)
 
     init {
@@ -100,11 +102,45 @@ class YouTubeSubtitleDownloader private constructor(context: Context) {
     }
 
     /**
+     * Test if a specific ANDROID client version works with YouTube's InnerTube API.
+     * Uses a provided video ID to verify the version returns caption tracks.
+     *
+     * @param videoId A YouTube video ID to test against
+     * @param version The ANDROID client version to test (e.g., "21.10.38")
+     * @return true if the version works and returns caption tracks
+     */
+    suspend fun testClientVersion(videoId: String, version: String): Boolean {
+        SubtitleLogger.i("Testing client version: $version with video: $videoId")
+        return repository.testVersion(videoId, version)
+    }
+
+    /**
+     * Manually set the ANDROID client version to use for InnerTube API calls.
+     * The version is saved to cache and used for subsequent requests.
+     *
+     * @param version The ANDROID client version (e.g., "21.10.38")
+     */
+    fun setClientVersion(version: String) {
+        SubtitleLogger.i("Manually setting client version: $version")
+        clientVersionCache.putClientVersion(version)
+    }
+
+    /**
+     * Get the currently cached ANDROID client version.
+     *
+     * @return The cached version, or the default version if none is cached
+     */
+    fun getCurrentClientVersion(): String {
+        return clientVersionCache.getClientVersion()
+    }
+
+    /**
      * Clear the cached API key
      * Useful if you want to force a fresh API key fetch
      */
     fun clearCache() {
         apiKeyCache.clear()
+        clientVersionCache.clear()
         SubtitleLogger.i("Cache cleared by user")
     }
 

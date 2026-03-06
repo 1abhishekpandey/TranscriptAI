@@ -83,6 +83,11 @@ enum class ErrorType {
     TRANSCRIPT_PARSE_FAILED,
 
     /**
+     * YouTube rejected all known client versions. The app may need an update.
+     */
+    CLIENT_VERSION_OUTDATED,
+
+    /**
      * Unknown error occurred
      */
     UNKNOWN_ERROR

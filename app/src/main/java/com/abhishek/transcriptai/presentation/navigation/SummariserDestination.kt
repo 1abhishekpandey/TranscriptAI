@@ -57,4 +57,10 @@ sealed class SummariserDestination(val route: String) {
          */
         const val ARG_PROMPT_ID = "promptId"
     }
+
+    /**
+     * Version Input screen - allows user to provide a newer YouTube client version
+     * Shown when YouTube rejects all known client versions
+     */
+    object VersionInput : SummariserDestination("version_input")
 }

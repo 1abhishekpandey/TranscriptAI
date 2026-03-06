@@ -31,6 +31,13 @@ sealed class HomeUiState {
      * @param message User-friendly error message
      */
     data class Error(val message: String) : HomeUiState()
+
+    /**
+     * Version outdated state - YouTube rejected the client version
+     * @param message User-friendly error message
+     * @param currentVersion The current client version that was rejected
+     */
+    data class VersionOutdated(val message: String, val currentVersion: String) : HomeUiState()
 }
 
 /**

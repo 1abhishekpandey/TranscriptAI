@@ -53,7 +53,8 @@ class SubtitleRepositoryImpl @Inject constructor(
                     Logger.logE("SubtitleRepositoryImpl: Extension error: ${extensionResult.message}", extensionResult.throwable)
                     Result.Error(
                         message = "Failed to download subtitles: ${extensionResult.message}",
-                        exception = extensionResult.throwable
+                        exception = extensionResult.throwable,
+                        errorType = extensionResult.type.name
                     )
                 }
                 is ExtensionSubtitleResult.Loading -> {

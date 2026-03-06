@@ -11,6 +11,7 @@ import androidx.navigation.navArgument
 import com.abhishek.transcriptai.data.repository.SubtitleCacheRepository
 import com.abhishek.transcriptai.presentation.home.HomeScreen
 import com.abhishek.transcriptai.presentation.prompteditor.PromptEditorScreen
+import com.abhishek.transcriptai.presentation.versioninput.VersionInputScreen
 import com.abhishek.transcriptai.util.Logger
 
 /**
@@ -70,6 +71,10 @@ fun SummariserNavGraph(
                 onNavigateToSummariser = { videoId ->
                     Logger.logI("SummariserNavGraph: Navigating from Home to Summariser with videoId: $videoId")
                     navController.navigate(SummariserDestination.Summariser.createRoute(videoId))
+                },
+                onNavigateToVersionInput = {
+                    Logger.logI("SummariserNavGraph: Navigating from Home to VersionInput")
+                    navController.navigate(SummariserDestination.VersionInput.route)
                 }
             )
         }
@@ -126,6 +131,17 @@ fun SummariserNavGraph(
                 promptId = promptId,
                 onNavigateBack = {
                     Logger.logI("SummariserNavGraph: Navigating back from PromptEditor")
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        // Version Input Screen - Fix outdated YouTube client version
+        composable(route = SummariserDestination.VersionInput.route) {
+            Logger.logV("SummariserNavGraph: Navigated to VersionInput screen")
+            VersionInputScreen(
+                onNavigateBack = {
+                    Logger.logI("SummariserNavGraph: Navigating back from VersionInput")
                     navController.popBackStack()
                 }
             )

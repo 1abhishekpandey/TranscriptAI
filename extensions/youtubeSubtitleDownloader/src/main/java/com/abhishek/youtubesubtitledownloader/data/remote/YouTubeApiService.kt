@@ -12,7 +12,7 @@ import java.util.concurrent.TimeUnit
 
 /**
  * Service for making API calls to YouTube
- * Implements the 3-step InnerTube API flow
+ * Uses InnerTube ANDROID client to fetch captions
  */
 internal class YouTubeApiService {
 
@@ -31,7 +31,7 @@ internal class YouTubeApiService {
     }
 
     /**
-     * Step 1: Fetch YouTube video page HTML to extract INNERTUBE_API_KEY
+     * Fetch YouTube video page HTML to extract INNERTUBE_API_KEY
      * @param videoUrl The YouTube video URL
      * @return HTML page content
      */
@@ -40,7 +40,8 @@ internal class YouTubeApiService {
 
         val request = Request.Builder()
             .url(videoUrl)
-            .header("User-Agent", USER_AGENT)
+            .header("User-Agent", WEB_USER_AGENT)
+            .header("Accept-Language", "en-US,en;q=0.9")
             .build()
 
         return executeRequest(request) { response ->
@@ -49,13 +50,14 @@ internal class YouTubeApiService {
     }
 
     /**
-     * Step 2: Call InnerTube Player API to get caption tracks
+     * Call InnerTube Player API to get caption tracks
+     * Uses ANDROID client which returns caption URLs without PO token requirement
      * @param apiKey The INNERTUBE_API_KEY extracted from page
      * @param videoId The YouTube video ID
-     * @return Caption tracks data as JSON string
+     * @return Player API response as JSON string
      */
-    suspend fun getPlayerInfo(apiKey: String, videoId: String): String {
-        SubtitleLogger.logStep("InnerTube API Call", "Video ID: $videoId")
+    suspend fun getPlayerInfo(apiKey: String, videoId: String, clientVersion: String): String {
+        SubtitleLogger.logStep("InnerTube API Call", "Video ID: $videoId, clientVersion: $clientVersion")
 
         val url = "$INNERTUBE_API_URL?key=$apiKey"
 
@@ -63,10 +65,7 @@ internal class YouTubeApiService {
             put("context", JSONObject().apply {
                 put("client", JSONObject().apply {
                     put("clientName", "ANDROID")
-                    put("clientVersion", "19.09.37")
-                    put("androidSdkVersion", 30)
-                    put("hl", "en")
-                    put("gl", "US")
+                    put("clientVersion", clientVersion)
                 })
             })
             put("videoId", videoId)
@@ -76,7 +75,6 @@ internal class YouTubeApiService {
             .url(url)
             .post(requestBody.toRequestBody(JSON_MEDIA_TYPE))
             .header("Content-Type", "application/json")
-            .header("User-Agent", USER_AGENT)
             .build()
 
         return executeRequest(request) { response ->
@@ -85,7 +83,7 @@ internal class YouTubeApiService {
     }
 
     /**
-     * Step 3: Fetch transcript XML from baseUrl
+     * Fetch transcript XML from baseUrl
      * @param baseUrl The URL from caption track (includes signature)
      * @return Transcript XML string
      */
@@ -94,7 +92,6 @@ internal class YouTubeApiService {
 
         val request = Request.Builder()
             .url(baseUrl)
-            .header("User-Agent", USER_AGENT)
             .build()
 
         return executeRequest(request) { response ->
@@ -155,6 +152,14 @@ internal class YouTubeApiService {
                 ?.optJSONObject("playerCaptionsTracklistRenderer")
                 ?.optJSONArray("captionTracks")
 
+            val playability = jsonObject.optJSONObject("playabilityStatus")
+            val status = playability?.optString("status")
+            if (status != null && status != "OK") {
+                val reason = playability.optString("reason", "Unknown reason")
+                SubtitleLogger.w("playabilityStatus: $status - $reason")
+                throw IOException("PlayabilityStatus: $status - $reason")
+            }
+
             if (captionTracks == null) {
                 SubtitleLogger.w("No caption tracks found in response")
                 return emptyList()
@@ -163,8 +168,6 @@ internal class YouTubeApiService {
             val tracks = mutableListOf<CaptionTrackDto>()
             for (i in 0 until captionTracks.length()) {
                 val track = captionTracks.getJSONObject(i)
-
-                // Extract name - handle multiple formats: simpleText, runs array, or missing
                 val nameText = extractNameFromTrack(track)
 
                 tracks.add(
@@ -184,6 +187,8 @@ internal class YouTubeApiService {
             }
 
             tracks
+        } catch (e: IOException) {
+            throw e
         } catch (e: Exception) {
             SubtitleLogger.e("Failed to parse caption tracks", e)
             emptyList()
@@ -192,19 +197,14 @@ internal class YouTubeApiService {
 
     /**
      * Extract name text from track JSON, handling multiple formats
-     * Formats: { "name": { "simpleText": "English" } }
-     *       or { "name": { "runs": [{ "text": "English" }] } }
-     *       or missing entirely
      */
     private fun extractNameFromTrack(track: JSONObject): String {
         return try {
             val nameObj = track.optJSONObject("name")
             when {
-                // Format 1: simpleText
                 nameObj?.has("simpleText") == true -> {
                     nameObj.getString("simpleText")
                 }
-                // Format 2: runs array
                 nameObj?.has("runs") == true -> {
                     val runs = nameObj.getJSONArray("runs")
                     if (runs.length() > 0) {
@@ -213,18 +213,16 @@ internal class YouTubeApiService {
                         track.getString("languageCode")
                     }
                 }
-                // Fallback: use languageCode
                 else -> track.getString("languageCode")
             }
         } catch (e: Exception) {
-            // Final fallback: use languageCode
             track.optString("languageCode", "unknown")
         }
     }
 
     companion object {
         private const val INNERTUBE_API_URL = "https://www.youtube.com/youtubei/v1/player"
-        private const val USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+        private const val WEB_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
         private val JSON_MEDIA_TYPE = "application/json; charset=utf-8".toMediaType()
     }
 }

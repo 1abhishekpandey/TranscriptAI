@@ -1,6 +1,7 @@
 package com.abhishek.youtubesubtitledownloader.data.repository
 
 import com.abhishek.youtubesubtitledownloader.cache.ApiKeyCache
+import com.abhishek.youtubesubtitledownloader.cache.ClientVersionCache
 import com.abhishek.youtubesubtitledownloader.data.parser.XmlSubtitleParser
 import com.abhishek.youtubesubtitledownloader.data.remote.CaptionTrackDto
 import com.abhishek.youtubesubtitledownloader.data.remote.YouTubeApiService
@@ -11,6 +12,7 @@ import com.abhishek.youtubesubtitledownloader.util.SubtitleLogger
 import com.abhishek.youtubesubtitledownloader.util.UrlValidator
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.io.IOException
 
 /**
  * Implementation of SubtitleRepository
@@ -18,7 +20,8 @@ import kotlinx.coroutines.withContext
  */
 internal class SubtitleRepositoryImpl(
     private val apiService: YouTubeApiService,
-    private val apiKeyCache: ApiKeyCache
+    private val apiKeyCache: ApiKeyCache,
+    private val clientVersionCache: ClientVersionCache
 ) : SubtitleRepository {
 
     override suspend fun downloadSubtitles(
@@ -53,8 +56,16 @@ internal class SubtitleRepositoryImpl(
                 message = "Failed to fetch INNERTUBE_API_KEY"
             )
 
-            // Step 4: Get caption tracks
-            val captionTracks = getCaptionTracks(apiKey, videoId)
+            // Step 4: Get caption tracks via InnerTube ANDROID client
+            val captionTracks = try {
+                getCaptionTracks(apiKey, videoId)
+            } catch (e: ClientVersionExhaustedException) {
+                return@withContext SubtitleResult.Error(
+                    type = ErrorType.CLIENT_VERSION_OUTDATED,
+                    message = "YouTube rejected all known client versions. The app may need an update.",
+                    throwable = e
+                )
+            }
             if (captionTracks.isEmpty()) {
                 return@withContext SubtitleResult.Error(
                     type = ErrorType.NO_SUBTITLES_AVAILABLE,
@@ -71,8 +82,9 @@ internal class SubtitleRepositoryImpl(
 
             SubtitleLogger.i("Selected caption: ${selectedTrack.name.simpleText} (${selectedTrack.languageCode})")
 
-            // Step 6: Download and parse transcript XML
-            val transcriptXml = apiService.fetchTranscriptXml(selectedTrack.baseUrl)
+            // Step 6: Download and parse transcript XML (strip fmt=srv3 if present)
+            val transcriptUrl = selectedTrack.baseUrl.replace("&fmt=srv3", "")
+            val transcriptXml = apiService.fetchTranscriptXml(transcriptUrl)
             val segments = XmlSubtitleParser.parseXml(transcriptXml)
 
             // Step 7: Convert to plain text (no timestamps)
@@ -97,16 +109,12 @@ internal class SubtitleRepositoryImpl(
 
     /**
      * Get API key from cache or fetch new one
-     * Implements retry logic: if cached key fails, fetch fresh key
      */
     private suspend fun getOrFetchApiKey(videoId: String): String? {
-        // Try cached key first
         val cachedKey = apiKeyCache.getApiKey()
         if (cachedKey != null) {
             return cachedKey
         }
-
-        // Fetch new key
         return fetchAndCacheApiKey(videoId)
     }
 
@@ -135,34 +143,91 @@ internal class SubtitleRepositoryImpl(
         }
     }
 
-    /**
-     * Get caption tracks using InnerTube API
-     * If fails, tries to refresh API key once and retry
-     */
     private suspend fun getCaptionTracks(apiKey: String, videoId: String): List<CaptionTrackDto> {
-        return try {
-            val response = apiService.getPlayerInfo(apiKey, videoId)
-            apiService.parseCaptionTracks(response)
-        } catch (e: Exception) {
-            SubtitleLogger.w("Failed with current API key, attempting to refresh", e)
+        val cachedVersion = clientVersionCache.getClientVersion()
 
-            // Clear cache and try with fresh key
-            apiKeyCache.clear()
-            val freshKey = fetchAndCacheApiKey(videoId)
+        // Attempt 1: cached version + current API key
+        try {
+            val tracks = fetchAndParseTracks(apiKey, videoId, cachedVersion)
+            if (tracks.isNotEmpty()) return tracks
+        } catch (e: IOException) {
+            SubtitleLogger.w("Failed with cached version $cachedVersion, refreshing API key", e)
+        }
 
-            if (freshKey != null) {
-                SubtitleLogger.i("Retrying with fresh API key")
-                val response = apiService.getPlayerInfo(freshKey, videoId)
-                apiService.parseCaptionTracks(response)
-            } else {
-                emptyList()
+        // Attempt 2: refresh API key, same version
+        apiKeyCache.clear()
+        val freshKey = fetchAndCacheApiKey(videoId)
+        val workingKey = freshKey ?: apiKey
+
+        try {
+            val tracks = fetchAndParseTracks(workingKey, videoId, cachedVersion)
+            if (tracks.isNotEmpty()) return tracks
+        } catch (e: IOException) {
+            SubtitleLogger.w("Failed after API key refresh, starting version probe", e)
+        }
+
+        // Attempt 3: probe upward from current major version
+        val probedTracks = probeWorkingVersion(workingKey, videoId, cachedVersion)
+        if (probedTracks.isNotEmpty()) return probedTracks
+
+        throw ClientVersionExhaustedException("All client versions exhausted for video $videoId")
+    }
+
+    private suspend fun probeWorkingVersion(
+        apiKey: String,
+        videoId: String,
+        failedVersion: String
+    ): List<CaptionTrackDto> {
+        val failedMajor = ClientVersionCache.parseMajorVersion(failedVersion) ?: return emptyList()
+        val minorPatch = ClientVersionCache.parseMinorPatch(failedVersion) ?: "10.38"
+
+        SubtitleLogger.i("Starting version probe from major $failedMajor")
+
+        for (majorOffset in 1..5) {
+            val candidateVersion = ClientVersionCache.buildVersion(failedMajor + majorOffset, minorPatch)
+            SubtitleLogger.i("Probing version: $candidateVersion")
+            try {
+                val tracks = fetchAndParseTracks(apiKey, videoId, candidateVersion)
+                if (tracks.isNotEmpty()) {
+                    SubtitleLogger.i("Found working version: $candidateVersion")
+                    clientVersionCache.putClientVersion(candidateVersion)
+                    return tracks
+                }
+            } catch (e: IOException) {
+                val msg = e.message ?: ""
+                if (msg.contains("HTTP 404")) {
+                    SubtitleLogger.w("Version $candidateVersion too new (404), stopping probe")
+                    break
+                }
+                SubtitleLogger.w("Version $candidateVersion rejected, continuing probe")
             }
         }
+
+        SubtitleLogger.e("Version probe failed: no working version found in range ${failedMajor + 1}..${failedMajor + 5}")
+        return emptyList()
+    }
+
+    internal suspend fun testVersion(videoId: String, version: String): Boolean {
+        val apiKey = getOrFetchApiKey(videoId) ?: return false
+        return try {
+            val tracks = fetchAndParseTracks(apiKey, videoId, version)
+            tracks.isNotEmpty()
+        } catch (e: IOException) {
+            false
+        }
+    }
+
+    private suspend fun fetchAndParseTracks(
+        apiKey: String,
+        videoId: String,
+        clientVersion: String
+    ): List<CaptionTrackDto> {
+        val response = apiService.getPlayerInfo(apiKey, videoId, clientVersion)
+        return apiService.parseCaptionTracks(response)
     }
 
     /**
      * Select the best caption track based on language preferences
-     * Priority: specified language → en → hi → auto → first available
      */
     private fun selectCaptionTrack(
         tracks: List<CaptionTrackDto>,
@@ -170,7 +235,6 @@ internal class SubtitleRepositoryImpl(
     ): CaptionTrackDto? {
         SubtitleLogger.d("Selecting caption track from ${tracks.size} available tracks")
 
-        // Try each preference in order
         for (langCode in preferences) {
             val track = when (langCode.lowercase()) {
                 "auto" -> tracks.firstOrNull { it.kind == "asr" }
@@ -183,7 +247,6 @@ internal class SubtitleRepositoryImpl(
             }
         }
 
-        // Fallback: return first available track
         val fallbackTrack = tracks.firstOrNull()
         if (fallbackTrack != null) {
             SubtitleLogger.d("No preference matched, using first available: ${fallbackTrack.languageCode}")
@@ -192,3 +255,5 @@ internal class SubtitleRepositoryImpl(
         return fallbackTrack
     }
 }
+
+private class ClientVersionExhaustedException(message: String) : IOException(message)
