@@ -33,13 +33,18 @@ class PromptEditorViewModel @Inject constructor(
 
     private var originalPromptText: String = ""
 
+    /** Set once the prompt passed to the screen has been loaded, so a screen restart does not load it again */
+    private var initialPromptLoaded = false
+
     init {
         Logger.logD("PromptEditorViewModel: Initializing")
         observePrompts()
     }
 
     fun loadPromptForEditIfProvided(promptId: String?) {
-        if (promptId != null) {
+        // The screen asks again after a rotation; loading again would throw away what was typed
+        if (promptId != null && !initialPromptLoaded) {
+            initialPromptLoaded = true
             Logger.logI("PromptEditorViewModel: Loading prompt for edit: $promptId")
             viewModelScope.launch {
                 val prompt = getPromptByIdUseCase(promptId)
@@ -123,7 +128,12 @@ class PromptEditorViewModel @Inject constructor(
         }
     }
 
-    private fun savePrompt() {
+    /**
+     * Validate and save the text in the editor
+     *
+     * @param onSaved Called once the prompt is stored (not called when validation fails)
+     */
+    private fun savePrompt(onSaved: () -> Unit = {}) {
         val currentState = _uiState.value
         val text = currentState.editorText.trim()
 
@@ -163,6 +173,7 @@ class PromptEditorViewModel @Inject constructor(
                         Logger.logI("PromptEditorViewModel: Prompt saved successfully")
                         onShowToast(SummariserConstants.MESSAGE_PROMPT_SAVED)
                         startNewPrompt()
+                        onSaved()
                     } else if (result is com.abhishek.transcriptai.domain.model.Result.Error) {
                         Logger.logE("PromptEditorViewModel: Failed to save prompt - ${result.message}")
                         _uiState.update { it.copy(validationError = result.message) }
@@ -300,11 +311,13 @@ class PromptEditorViewModel @Inject constructor(
         _uiState.update { it.copy(showUnsavedChangesDialog = false) }
     }
 
+    /**
+     * Save, then leave once the prompt is stored. Leaving earlier would clear the ViewModel
+     * and cancel the save that is still running. The dialog closes right away so a validation
+     * error shows under the text field.
+     */
     private fun saveAndExit() {
-        savePrompt()
-        if (_uiState.value.validationError == null) {
-            _uiState.update { it.copy(showUnsavedChangesDialog = false) }
-            onNavigateBack()
-        }
+        _uiState.update { it.copy(showUnsavedChangesDialog = false) }
+        savePrompt(onSaved = { onNavigateBack() })
     }
 }
