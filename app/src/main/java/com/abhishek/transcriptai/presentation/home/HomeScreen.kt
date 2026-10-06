@@ -12,8 +12,10 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -23,6 +25,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.abhishek.transcriptai.domain.model.LanguageChoice
+import com.abhishek.transcriptai.domain.model.LanguageMode
 import com.abhishek.transcriptai.util.Logger
 
 /**
@@ -32,6 +36,7 @@ import com.abhishek.transcriptai.util.Logger
  * @param modifier Modifier for the screen
  * @param initialUrl Initial YouTube URL from deep link (optional)
  * @param onNavigateToSummariser Callback for navigating to Summariser screen
+ * @param onNavigateToLanguageSettings Callback for opening the language settings page
  * @param viewModel HomeViewModel injected via Hilt
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -41,11 +46,12 @@ fun HomeScreen(
     initialUrl: String? = null,
     onNavigateToSummariser: (videoId: String) -> Unit = {},
     onNavigateToVersionInput: () -> Unit = {},
+    onNavigateToLanguageSettings: () -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val videoUrl by viewModel.videoUrl.collectAsState()
-    val selectedLanguage by viewModel.selectedLanguage.collectAsState()
+    val languageChoice by viewModel.languageChoice.collectAsState()
     val languageExpanded by viewModel.languageExpanded.collectAsState()
     val autoShareEnabled by viewModel.autoShareEnabled.collectAsState()
     val selectedApp by viewModel.selectedApp.collectAsState()
@@ -112,10 +118,11 @@ fun HomeScreen(
 
             // Language Selection Section
             CollapsibleLanguageSelection(
-                selectedLanguage = selectedLanguage,
+                languageChoice = languageChoice,
                 isExpanded = languageExpanded,
                 onExpandToggle = { viewModel.onEvent(HomeUiEvent.ToggleLanguageExpansion) },
-                onLanguageSelect = { viewModel.onEvent(HomeUiEvent.SelectLanguage(it)) },
+                onModeSelect = { viewModel.onEvent(HomeUiEvent.SelectLanguageMode(it)) },
+                onOpenLanguageSettings = onNavigateToLanguageSettings,
                 enabled = uiState !is HomeUiState.Loading
             )
 
@@ -365,12 +372,21 @@ private fun VersionOutdatedContent(
     }
 }
 
+/**
+ * Display name of the selected language option, e.g. "Auto-generated" or "Bahasa Indonesia"
+ */
+private fun LanguageChoice.selectedName(): String = when (mode) {
+    LanguageMode.AUTO -> "Auto-generated"
+    LanguageMode.OTHER -> otherLanguage?.nativeName ?: "Auto-generated"
+}
+
 @Composable
 private fun CollapsibleLanguageSelection(
-    selectedLanguage: SubtitleLanguage,
+    languageChoice: LanguageChoice,
     isExpanded: Boolean,
     onExpandToggle: () -> Unit,
-    onLanguageSelect: (SubtitleLanguage) -> Unit,
+    onModeSelect: (LanguageMode) -> Unit,
+    onOpenLanguageSettings: () -> Unit,
     enabled: Boolean
 ) {
     Card(
@@ -404,7 +420,7 @@ private fun CollapsibleLanguageSelection(
 
                     // Compact view - show selected language with badge style
                     Text(
-                        text = selectedLanguage.displayName,
+                        text = languageChoice.selectedName(),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.primary,
                         fontWeight = FontWeight.SemiBold
@@ -437,15 +453,29 @@ private fun CollapsibleLanguageSelection(
                         modifier = Modifier.padding(bottom = 8.dp)
                     )
 
-                    // Language options with radio buttons
-                    SubtitleLanguage.values().forEach { language ->
+                    LanguageOption(
+                        title = "Auto-generated",
+                        subtitle = "Captions YouTube makes from the video's speech",
+                        isSelected = languageChoice.mode == LanguageMode.AUTO,
+                        onSelect = { onModeSelect(LanguageMode.AUTO) },
+                        enabled = enabled
+                    )
+
+                    // Language picked on the settings page, shown in its own script
+                    languageChoice.otherLanguage?.let { otherLanguage ->
                         LanguageOption(
-                            language = language,
-                            isSelected = selectedLanguage == language,
-                            onSelect = { onLanguageSelect(language) },
+                            title = otherLanguage.nativeName,
+                            subtitle = otherLanguage.englishName,
+                            isSelected = languageChoice.mode == LanguageMode.OTHER,
+                            onSelect = { onModeSelect(LanguageMode.OTHER) },
                             enabled = enabled
                         )
                     }
+
+                    OtherLanguagesRow(
+                        onClick = onOpenLanguageSettings,
+                        enabled = enabled
+                    )
                 }
             }
         }
@@ -454,10 +484,11 @@ private fun CollapsibleLanguageSelection(
 
 @Composable
 private fun LanguageOption(
-    language: SubtitleLanguage,
+    title: String,
     isSelected: Boolean,
     onSelect: () -> Unit,
-    enabled: Boolean
+    enabled: Boolean,
+    subtitle: String? = null
 ) {
     Row(
         modifier = Modifier
@@ -476,15 +507,60 @@ private fun LanguageOption(
             )
         )
         Spacer(modifier = Modifier.width(12.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyLarge,
+                color = if (isSelected) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    MaterialTheme.colorScheme.onSecondaryContainer
+                },
+                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
+            )
+            if (subtitle != null) {
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f)
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Opens the language settings page to pick a subtitle language
+ */
+@Composable
+private fun OtherLanguagesRow(
+    onClick: () -> Unit,
+    enabled: Boolean
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(enabled = enabled) { onClick() }
+            .padding(vertical = 12.dp, horizontal = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = Icons.Default.Settings,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSecondaryContainer,
+            modifier = Modifier.padding(horizontal = 12.dp)
+        )
+        Spacer(modifier = Modifier.width(12.dp))
         Text(
-            text = language.displayName,
+            text = "Other languages",
             style = MaterialTheme.typography.bodyLarge,
-            color = if (isSelected) {
-                MaterialTheme.colorScheme.primary
-            } else {
-                MaterialTheme.colorScheme.onSecondaryContainer
-            },
-            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
+            color = MaterialTheme.colorScheme.onSecondaryContainer,
+            modifier = Modifier.weight(1f)
+        )
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+            contentDescription = "Open language settings",
+            tint = MaterialTheme.colorScheme.onSecondaryContainer
         )
     }
 }

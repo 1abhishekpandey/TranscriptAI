@@ -238,7 +238,9 @@ internal class SubtitleRepositoryImpl(
         for (langCode in preferences) {
             val track = when (langCode.lowercase()) {
                 "auto" -> tracks.firstOrNull { it.kind == "asr" }
+                // Exact code first, then a regional variant (e.g. "es" matches "es-419", "pt" matches "pt-BR")
                 else -> tracks.firstOrNull { it.languageCode.equals(langCode, ignoreCase = true) }
+                    ?: tracks.firstOrNull { it.languageCode.startsWith("$langCode-", ignoreCase = true) }
             }
 
             if (track != null) {

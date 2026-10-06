@@ -63,4 +63,9 @@ sealed class SummariserDestination(val route: String) {
      * Shown when YouTube rejects all known client versions
      */
     object VersionInput : SummariserDestination("version_input")
+
+    /**
+     * Language Settings screen - pick a subtitle language other than auto-generated
+     */
+    object LanguageSettings : SummariserDestination("language_settings")
 }

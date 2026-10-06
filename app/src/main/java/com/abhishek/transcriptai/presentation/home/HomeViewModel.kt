@@ -3,8 +3,11 @@ package com.abhishek.transcriptai.presentation.home
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.abhishek.transcriptai.data.repository.SubtitleCacheRepository
+import com.abhishek.transcriptai.domain.model.LanguageChoice
+import com.abhishek.transcriptai.domain.model.LanguageMode
 import com.abhishek.transcriptai.domain.model.Result
 import com.abhishek.transcriptai.domain.repository.AutoShareConfigRepository
+import com.abhishek.transcriptai.domain.repository.LanguagePreferenceRepository
 import com.abhishek.transcriptai.domain.usecase.DownloadSubtitlesUseCase
 import com.abhishek.transcriptai.util.Logger
 import com.abhishek.youtubesubtitledownloader.YouTubeSubtitleDownloader
@@ -22,12 +25,14 @@ import javax.inject.Inject
  * @param downloadSubtitlesUseCase Use case for downloading subtitles
  * @param subtitleCacheRepository Repository for caching subtitle data
  * @param autoShareConfigRepository Repository for auto-share configuration
+ * @param languagePreferenceRepository Repository for the saved subtitle language choice
  */
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val downloadSubtitlesUseCase: DownloadSubtitlesUseCase,
     private val subtitleCacheRepository: SubtitleCacheRepository,
     private val autoShareConfigRepository: AutoShareConfigRepository,
+    private val languagePreferenceRepository: LanguagePreferenceRepository,
     private val youtubeSubtitleDownloader: YouTubeSubtitleDownloader
 ) : ViewModel() {
 
@@ -37,9 +42,9 @@ class HomeViewModel @Inject constructor(
     private val _videoUrl = MutableStateFlow("")
     val videoUrl: StateFlow<String> = _videoUrl.asStateFlow()
 
-    // Selected language (default is English)
-    private val _selectedLanguage = MutableStateFlow(SubtitleLanguage.ENGLISH)
-    val selectedLanguage: StateFlow<SubtitleLanguage> = _selectedLanguage.asStateFlow()
+    // Saved language choice (default is auto-generated captions)
+    private val _languageChoice = MutableStateFlow(LanguageChoice())
+    val languageChoice: StateFlow<LanguageChoice> = _languageChoice.asStateFlow()
 
     // Language selection expansion state
     private val _languageExpanded = MutableStateFlow(false)
@@ -63,7 +68,6 @@ class HomeViewModel @Inject constructor(
 
     init {
         Logger.logI("HomeViewModel: Initialized")
-        Logger.logD("HomeViewModel: Default language: ${SubtitleLanguage.ENGLISH.displayName}")
 
         // Load auto-share preferences
         viewModelScope.launch {
@@ -71,6 +75,14 @@ class HomeViewModel @Inject constructor(
             _selectedApp.value = autoShareConfigRepository.getSelectedApp()
             Logger.logI("HomeViewModel: Auto-share preference loaded: ${_autoShareEnabled.value}")
             Logger.logI("HomeViewModel: Selected app loaded: ${_selectedApp.value}")
+        }
+
+        // Follow the saved language choice, including changes made on the language settings page
+        viewModelScope.launch {
+            languagePreferenceRepository.observeLanguageChoice().collect {
+                _languageChoice.value = it
+                Logger.logI("HomeViewModel: Language choice: ${it.mode}, other language: ${it.otherLanguageCode}")
+            }
         }
     }
 
@@ -119,8 +131,8 @@ class HomeViewModel @Inject constructor(
             is HomeUiEvent.UpdateVideoUrl -> {
                 updateVideoUrl(event.url)
             }
-            is HomeUiEvent.SelectLanguage -> {
-                selectLanguage(event.language)
+            is HomeUiEvent.SelectLanguageMode -> {
+                selectLanguageMode(event.mode)
             }
             is HomeUiEvent.ToggleLanguageExpansion -> {
                 toggleLanguageExpansion()
@@ -249,11 +261,15 @@ class HomeViewModel @Inject constructor(
     }
 
     /**
-     * Select a language
+     * Select a language option and save it
      */
-    private fun selectLanguage(language: SubtitleLanguage) {
-        Logger.logI("HomeViewModel: Language selected: ${language.displayName}")
-        _selectedLanguage.value = language
+    private fun selectLanguageMode(mode: LanguageMode) {
+        Logger.logI("HomeViewModel: Language option selected: $mode")
+        _languageChoice.value = _languageChoice.value.copy(mode = mode)
+
+        viewModelScope.launch {
+            languagePreferenceRepository.setLanguageMode(mode)
+        }
     }
 
     /**
@@ -275,7 +291,7 @@ class HomeViewModel @Inject constructor(
      * Build language preferences list based on user selection
      */
     private fun buildLanguagePreferences(): List<String> {
-        val preferences = listOf(_selectedLanguage.value.code)
+        val preferences = _languageChoice.value.toLanguagePreferences()
         Logger.logD("HomeViewModel: Language preference: ${preferences.joinToString(", ")}")
         return preferences
     }
@@ -289,7 +305,6 @@ class HomeViewModel @Inject constructor(
         _uiState.value = HomeUiState.Idle
         _videoUrl.value = ""
         currentSubtitle = ""
-        _selectedLanguage.value = SubtitleLanguage.ENGLISH
         _languageExpanded.value = false
 
         // Clear cached subtitle

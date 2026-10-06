@@ -10,6 +10,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.abhishek.transcriptai.data.repository.SubtitleCacheRepository
 import com.abhishek.transcriptai.presentation.home.HomeScreen
+import com.abhishek.transcriptai.presentation.languagesettings.LanguageSettingsScreen
 import com.abhishek.transcriptai.presentation.prompteditor.PromptEditorScreen
 import com.abhishek.transcriptai.presentation.versioninput.VersionInputScreen
 import com.abhishek.transcriptai.util.Logger
@@ -75,6 +76,10 @@ fun SummariserNavGraph(
                 onNavigateToVersionInput = {
                     Logger.logI("SummariserNavGraph: Navigating from Home to VersionInput")
                     navController.navigate(SummariserDestination.VersionInput.route)
+                },
+                onNavigateToLanguageSettings = {
+                    Logger.logI("SummariserNavGraph: Navigating from Home to LanguageSettings")
+                    navController.navigate(SummariserDestination.LanguageSettings.route)
                 }
             )
         }
@@ -142,6 +147,17 @@ fun SummariserNavGraph(
             VersionInputScreen(
                 onNavigateBack = {
                     Logger.logI("SummariserNavGraph: Navigating back from VersionInput")
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        // Language Settings Screen - Pick a subtitle language
+        composable(route = SummariserDestination.LanguageSettings.route) {
+            Logger.logV("SummariserNavGraph: Navigated to LanguageSettings screen")
+            LanguageSettingsScreen(
+                onNavigateBack = {
+                    Logger.logI("SummariserNavGraph: Navigating back from LanguageSettings")
                     navController.popBackStack()
                 }
             )

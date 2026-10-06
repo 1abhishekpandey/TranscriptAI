@@ -2,17 +2,20 @@ package com.abhishek.transcriptai.di
 
 import android.content.Context
 import com.abhishek.transcriptai.data.local.AutoSharePreferences
+import com.abhishek.transcriptai.data.local.LanguagePreferences
 import com.abhishek.transcriptai.data.local.database.AppDatabase
 import com.abhishek.transcriptai.data.local.database.dao.PromptDao
 import com.abhishek.transcriptai.data.local.preferences.SummariserPreferences
 import com.abhishek.transcriptai.data.repository.AIShareRepositoryImpl
 import com.abhishek.transcriptai.data.repository.AutoShareConfigRepositoryImpl
+import com.abhishek.transcriptai.data.repository.LanguagePreferenceRepositoryImpl
 import com.abhishek.transcriptai.data.repository.PromptRepositoryImpl
 import com.abhishek.transcriptai.data.repository.SubtitleCacheRepository
 import com.abhishek.transcriptai.data.repository.SubtitleRepositoryImpl
 import com.abhishek.transcriptai.data.repository.SummariserConfigRepositoryImpl
 import com.abhishek.transcriptai.domain.repository.AIShareRepository
 import com.abhishek.transcriptai.domain.repository.AutoShareConfigRepository
+import com.abhishek.transcriptai.domain.repository.LanguagePreferenceRepository
 import com.abhishek.transcriptai.domain.repository.PromptRepository
 import com.abhishek.transcriptai.domain.repository.SubtitleRepository
 import com.abhishek.transcriptai.domain.repository.SummariserConfigRepository
@@ -210,5 +213,31 @@ object AppModule {
     ): AutoShareConfigRepository {
         Logger.logD("AppModule: Providing AutoShareConfigRepository")
         return AutoShareConfigRepositoryImpl(preferences)
+    }
+
+    /**
+     * Provides LanguagePreferences instance
+     * Stores the subtitle language choice using SharedPreferences
+     */
+    @Provides
+    @Singleton
+    fun provideLanguagePreferences(
+        @ApplicationContext context: Context
+    ): LanguagePreferences {
+        Logger.logD("AppModule: Providing LanguagePreferences")
+        return LanguagePreferences(context)
+    }
+
+    /**
+     * Provides LanguagePreferenceRepository implementation
+     * Keeps the subtitle language choice across app restarts
+     */
+    @Provides
+    @Singleton
+    fun provideLanguagePreferenceRepository(
+        preferences: LanguagePreferences
+    ): LanguagePreferenceRepository {
+        Logger.logD("AppModule: Providing LanguagePreferenceRepository")
+        return LanguagePreferenceRepositoryImpl(preferences)
     }
 }

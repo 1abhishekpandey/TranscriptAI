@@ -7,6 +7,7 @@ import com.abhishek.transcriptai.domain.model.Result
 import com.abhishek.transcriptai.domain.model.ShareTarget
 import com.abhishek.transcriptai.domain.repository.AIShareRepository
 import com.abhishek.transcriptai.domain.repository.AutoShareConfigRepository
+import com.abhishek.transcriptai.domain.repository.LanguagePreferenceRepository
 import com.abhishek.transcriptai.domain.repository.PromptRepository
 import com.abhishek.transcriptai.domain.usecase.DownloadSubtitlesUseCase
 import com.abhishek.transcriptai.domain.usecase.config.GetSummariserConfigUseCase
@@ -48,7 +49,8 @@ class SummariserViewModel @Inject constructor(
     private val updateSummariserConfigUseCase: UpdateSummariserConfigUseCase,
     private val formatSubtitleForCopyUseCase: FormatSubtitleForCopyUseCase,
     private val aiShareRepository: AIShareRepository,
-    private val autoShareConfigRepository: AutoShareConfigRepository
+    private val autoShareConfigRepository: AutoShareConfigRepository,
+    private val languagePreferenceRepository: LanguagePreferenceRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SummariserUiState())
@@ -99,7 +101,8 @@ class SummariserViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
 
-            when (val result = downloadSubtitlesUseCase(url)) {
+            val languagePreferences = languagePreferenceRepository.getLanguageChoice().toLanguagePreferences()
+            when (val result = downloadSubtitlesUseCase(url, languagePreferences)) {
                 is Result.Success -> {
                     Logger.logI("SummariserViewModel: Auto-download successful - videoId: ${result.data.videoId}")
 

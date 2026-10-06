@@ -1,5 +1,7 @@
 package com.abhishek.transcriptai.presentation.home
 
+import com.abhishek.transcriptai.domain.model.LanguageMode
+
 /**
  * UI State for Home Screen
  * Represents all possible states of the subtitle download UI
@@ -61,9 +63,9 @@ sealed class HomeUiEvent {
     data class UpdateVideoUrl(val url: String) : HomeUiEvent()
 
     /**
-     * User selected a language
+     * User selected a language option (auto-generated or the picked language)
      */
-    data class SelectLanguage(val language: SubtitleLanguage) : HomeUiEvent()
+    data class SelectLanguageMode(val mode: LanguageMode) : HomeUiEvent()
 
     /**
      * User toggled language selection expansion
@@ -84,13 +86,4 @@ sealed class HomeUiEvent {
      * User selected target app for auto-sharing
      */
     data class SelectAutoShareApp(val app: String) : HomeUiEvent()
-}
-
-/**
- * Available subtitle languages
- */
-enum class SubtitleLanguage(val code: String, val displayName: String) {
-    ENGLISH("en", "English"),
-    HINDI("hi", "Hindi"),
-    AUTO("auto", "Auto-generated")
 }
