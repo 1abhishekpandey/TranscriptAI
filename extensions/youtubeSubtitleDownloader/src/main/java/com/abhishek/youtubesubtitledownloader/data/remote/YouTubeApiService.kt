@@ -138,12 +138,12 @@ internal class YouTubeApiService {
     }
 
     /**
-     * Parse caption tracks from InnerTube API response
+     * Parse the video title and caption tracks from an InnerTube API response
      * @param json The JSON response from InnerTube API
-     * @return List of caption tracks or empty list
+     * @return Player info with the video title (null when absent) and caption tracks (empty when absent)
      */
-    fun parseCaptionTracks(json: String): List<CaptionTrackDto> {
-        SubtitleLogger.logStep("Parse Caption Tracks", "Parsing JSON response")
+    fun parsePlayerInfo(json: String): PlayerInfoDto {
+        SubtitleLogger.logStep("Parse Player Info", "Parsing JSON response")
 
         return try {
             val jsonObject = JSONObject(json)
@@ -160,9 +160,15 @@ internal class YouTubeApiService {
                 throw IOException("PlayabilityStatus: $status - $reason")
             }
 
+            val videoTitle = jsonObject
+                .optJSONObject("videoDetails")
+                ?.optString("title")
+                ?.takeIf { it.isNotBlank() }
+            SubtitleLogger.d("Video title: ${videoTitle ?: "(none)"}")
+
             if (captionTracks == null) {
                 SubtitleLogger.w("No caption tracks found in response")
-                return emptyList()
+                return PlayerInfoDto(videoTitle, emptyList())
             }
 
             val tracks = mutableListOf<CaptionTrackDto>()
@@ -175,7 +181,7 @@ internal class YouTubeApiService {
                         baseUrl = track.getString("baseUrl"),
                         name = NameDto(nameText),
                         languageCode = track.getString("languageCode"),
-                        kind = track.optString("kind", null),
+                        kind = if (track.isNull("kind")) null else track.getString("kind"),
                         isTranslatable = track.optBoolean("isTranslatable", false)
                     )
                 )
@@ -186,12 +192,12 @@ internal class YouTubeApiService {
                 SubtitleLogger.d("  - ${track.name.simpleText} (${track.languageCode}) ${if (track.kind == "asr") "[AUTO]" else "[MANUAL]"}")
             }
 
-            tracks
+            PlayerInfoDto(videoTitle, tracks)
         } catch (e: IOException) {
             throw e
         } catch (e: Exception) {
-            SubtitleLogger.e("Failed to parse caption tracks", e)
-            emptyList()
+            SubtitleLogger.e("Failed to parse player info", e)
+            PlayerInfoDto(videoTitle = null, captionTracks = emptyList())
         }
     }
 

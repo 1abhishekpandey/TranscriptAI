@@ -11,6 +11,17 @@ internal data class CaptionTrackDto(
     val isTranslatable: Boolean?
 )
 
+/**
+ * The parts of an InnerTube Player API response the downloader uses
+ *
+ * @param videoTitle Title from `videoDetails`, null when the response has none
+ * @param captionTracks Every caption track the video offers, empty when it has none
+ */
+internal data class PlayerInfoDto(
+    val videoTitle: String?,
+    val captionTracks: List<CaptionTrackDto>
+)
+
 internal data class NameDto(
     val simpleText: String
 )
