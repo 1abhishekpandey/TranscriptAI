@@ -13,8 +13,8 @@ sealed class HomeUiState {
     data object Idle : HomeUiState()
 
     /**
-     * Loading state with progress message
-     * @param message Progress message to display (e.g., "Fetching video info...", "Parsing subtitles...")
+     * Loading state while subtitles are being fetched
+     * @param message Message shown next to the progress indicator
      */
     data class Loading(val message: String) : HomeUiState()
 
@@ -73,7 +73,7 @@ sealed class HomeUiEvent {
     data object ToggleLanguageExpansion : HomeUiEvent()
 
     /**
-     * User clicked the clear button to reset everything
+     * User clicked the clear button on the URL field to reset everything
      */
     data object ClearContent : HomeUiEvent()
 

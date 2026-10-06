@@ -11,11 +11,14 @@ import com.abhishek.transcriptai.domain.repository.LanguagePreferenceRepository
 import com.abhishek.transcriptai.domain.usecase.DownloadSubtitlesUseCase
 import com.abhishek.transcriptai.util.Logger
 import com.abhishek.youtubesubtitledownloader.YouTubeSubtitleDownloader
+import com.abhishek.youtubesubtitledownloader.domain.model.ErrorType
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import java.io.IOException
 import javax.inject.Inject
 
 /**
@@ -153,22 +156,17 @@ class HomeViewModel @Inject constructor(
      * Download subtitles for the given video URL
      */
     private fun downloadSubtitle(videoUrl: String) {
+        if (_uiState.value is HomeUiState.Loading) {
+            Logger.logW("HomeViewModel: Download already in progress, ignoring request")
+            return
+        }
+
         Logger.logI("HomeViewModel: Starting subtitle download for: $videoUrl")
 
         viewModelScope.launch {
             try {
-                // Update to loading state with initial message
-                _uiState.value = HomeUiState.Loading("Fetching video info...")
-                Logger.logV("HomeViewModel: State changed to Loading - Fetching video info")
-
-                // Simulate progress updates
-                kotlinx.coroutines.delay(500)
-                _uiState.value = HomeUiState.Loading("Retrieving subtitle tracks...")
-                Logger.logV("HomeViewModel: State changed to Loading - Retrieving subtitle tracks")
-
-                kotlinx.coroutines.delay(500)
-                _uiState.value = HomeUiState.Loading("Parsing subtitles...")
-                Logger.logV("HomeViewModel: State changed to Loading - Parsing subtitles")
+                _uiState.value = HomeUiState.Loading(LOADING_MESSAGE)
+                Logger.logV("HomeViewModel: State changed to Loading")
 
                 // Build language preferences and call use case
                 val languagePreferences = buildLanguagePreferences()
@@ -202,7 +200,7 @@ class HomeViewModel @Inject constructor(
                         }
                     }
                     is Result.Error -> {
-                        if (result.errorType == "CLIENT_VERSION_OUTDATED") {
+                        if (result.errorType == ErrorType.CLIENT_VERSION_OUTDATED.name) {
                             val currentVersion = youtubeSubtitleDownloader.getCurrentClientVersion()
                             _uiState.value = HomeUiState.VersionOutdated(
                                 message = result.message,
@@ -210,7 +208,7 @@ class HomeViewModel @Inject constructor(
                             )
                             Logger.logW("HomeViewModel: Client version outdated. Current: $currentVersion")
                         } else {
-                            _uiState.value = HomeUiState.Error(result.message)
+                            _uiState.value = HomeUiState.Error(toFriendlyMessage(result))
                             Logger.logE("HomeViewModel: Error loading subtitles: ${result.message}", result.exception)
                         }
                     }
@@ -219,10 +217,44 @@ class HomeViewModel @Inject constructor(
                         Logger.logV("HomeViewModel: Result is still loading")
                     }
                 }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
-                _uiState.value = HomeUiState.Error("An unexpected error occurred: ${e.message}")
+                _uiState.value = HomeUiState.Error(GENERIC_ERROR_MESSAGE)
                 Logger.logE("HomeViewModel: Unexpected error in downloadSubtitle", e)
             }
+        }
+    }
+
+    /**
+     * Turn a download error into a short message the user can act on.
+     * Known error types get fixed wording; anything else keeps the reported
+     * reason without the repository's "Failed to download subtitles:" prefix.
+     */
+    private fun toFriendlyMessage(error: Result.Error): String {
+        if (error.exception is IOException || error.errorType == ErrorType.NETWORK_ERROR.name) {
+            return "Couldn't reach YouTube. Check your internet connection and try again."
+        }
+
+        return when (error.errorType) {
+            ErrorType.INVALID_URL.name,
+            ErrorType.INVALID_VIDEO_ID.name ->
+                "That doesn't look like a YouTube link. Check the URL and try again."
+            ErrorType.NO_SUBTITLES_AVAILABLE.name,
+            ErrorType.CAPTION_TRACKS_NOT_FOUND.name ->
+                "This video has no subtitles available."
+            ErrorType.LANGUAGE_NOT_AVAILABLE.name ->
+                "This video has no subtitles in the selected language. Try Auto-generated or another language."
+            ErrorType.API_KEY_EXTRACTION_FAILED.name,
+            ErrorType.TRANSCRIPT_DOWNLOAD_FAILED.name ->
+                "Couldn't fetch subtitles from YouTube. Please try again."
+            ErrorType.TRANSCRIPT_PARSE_FAILED.name ->
+                "Couldn't read this video's subtitles. Please try again."
+            else -> error.message
+                .removePrefix(DOWNLOAD_FAILED_PREFIX)
+                .trim()
+                .takeIf { it.isNotEmpty() && it != "null" }
+                ?: GENERIC_ERROR_MESSAGE
         }
     }
 
@@ -248,6 +280,11 @@ class HomeViewModel @Inject constructor(
     private fun updateVideoUrl(url: String) {
         Logger.logV("HomeViewModel: Video URL updated: $url")
         _videoUrl.value = url
+
+        // A failure message belongs to the previous URL, so drop it once the URL changes
+        if (_uiState.value is HomeUiState.Error || _uiState.value is HomeUiState.VersionOutdated) {
+            _uiState.value = HomeUiState.Idle
+        }
     }
 
     /**
@@ -305,7 +342,6 @@ class HomeViewModel @Inject constructor(
         _uiState.value = HomeUiState.Idle
         _videoUrl.value = ""
         currentSubtitle = ""
-        _languageExpanded.value = false
 
         // Clear cached subtitle
         subtitleCacheRepository.clearCache()
@@ -342,5 +378,11 @@ class HomeViewModel @Inject constructor(
     override fun onCleared() {
         super.onCleared()
         Logger.logI("HomeViewModel: Cleared")
+    }
+
+    private companion object {
+        const val LOADING_MESSAGE = "Fetching subtitles..."
+        const val GENERIC_ERROR_MESSAGE = "Something went wrong. Please try again."
+        const val DOWNLOAD_FAILED_PREFIX = "Failed to download subtitles:"
     }
 }

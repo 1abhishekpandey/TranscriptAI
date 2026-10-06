@@ -19,7 +19,7 @@ import com.abhishek.transcriptai.util.Logger
  * Navigation graph for the AI Summarizer feature
  *
  * Defines navigation routes and screen composables
- * Handles navigation between Home, Summariser, and Prompt Editor screens
+ * Handles navigation between Home, Summariser, Prompt Editor, Version Input and Language Settings screens
  * Supports conditional routing based on auto-share preference
  *
  * @param navController The navigation controller for managing navigation
@@ -80,6 +80,12 @@ fun SummariserNavGraph(
                 onNavigateToLanguageSettings = {
                     Logger.logI("SummariserNavGraph: Navigating from Home to LanguageSettings")
                     navController.navigate(SummariserDestination.LanguageSettings.route)
+                },
+                onTrySampleVideo = { url ->
+                    Logger.logI("SummariserNavGraph: Opening sample video from Home: $url")
+                    // Manual flow: the Summariser downloads in the saved language and never auto-shares
+                    subtitleCacheRepository.setPendingUrl(url, autoShare = false)
+                    navController.navigate(SummariserDestination.Summariser.createAutoDownloadRoute())
                 }
             )
         }
