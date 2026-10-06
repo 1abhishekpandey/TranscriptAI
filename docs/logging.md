@@ -11,7 +11,7 @@ TranscriptAI uses a centralized logging system with consistent patterns across a
 ### Logger Utility
 
 **Location**: `app/src/main/java/com/abhishek/transcriptai/util/Logger.kt`
-**Tag**: `"TranscriptAI"`
+**Tag**: `"TranscriptAI-Log"`
 **Default Level**: `VERBOSE`
 **Built on**: Timber library
 
@@ -35,7 +35,7 @@ Logger.logExit(methodName: String)   // Log method exit
 The logger is initialized in the Application class:
 
 ```kotlin
-class TranscriptAIApplication : Application() {
+class TranscriptAiApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         Logger.init()  // Initialize Timber
@@ -47,7 +47,7 @@ class TranscriptAIApplication : Application() {
 
 ### YouTube Subtitle Downloader
 
-**Tag**: `"transcriptaiYouTubeSubtitleDownloader"`
+**Tag**: `"TranscriptAI-YouTubeSubtitleDownloader"`
 **Default Level**: `VERBOSE`
 **Location**: `extensions/youtubeSubtitleDownloader/src/main/java/com/abhishek/youtubesubtitledownloader/util/SubtitleLogger.kt`
 
@@ -159,11 +159,11 @@ Logger.logW("ApiKeyCache: Cache read error", ioException)
 ### Application Layer
 
 ```kotlin
-class TranscriptAIApplication : Application() {
+class TranscriptAiApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         Logger.init()
-        Logger.logI("TranscriptAIApplication: Application created")
+        Logger.logI("TranscriptAiApplication: Application created")
     }
 }
 ```
@@ -284,20 +284,20 @@ object Logger {
 ### Logcat (Android Studio)
 
 1. Open Logcat tab
-2. Filter by tag: `TranscriptAI` or `transcriptaiYouTubeSubtitleDownloader`
+2. Filter by tag: `TranscriptAI-Log` or `TranscriptAI-YouTubeSubtitleDownloader`
 3. Select log level
 
 ### ADB Command Line
 
 ```bash
 # View app logs only
-adb logcat -s TranscriptAI
+adb logcat -s TranscriptAI-Log
 
 # View extension logs only
-adb logcat -s transcriptaiYouTubeSubtitleDownloader
+adb logcat -s TranscriptAI-YouTubeSubtitleDownloader
 
 # View both
-adb logcat -s TranscriptAI:V transcriptaiYouTubeSubtitleDownloader:V
+adb logcat -s TranscriptAI-Log:V TranscriptAI-YouTubeSubtitleDownloader:V
 
 # Set log level
 adb shell setprop log.tag.TranscriptAI VERBOSE

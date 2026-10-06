@@ -14,12 +14,13 @@ This document provides solutions to common issues encountered when developing Tr
 - Dagger components not generated
 
 **Solution**:
-1. Check Hilt version matches Kotlin/AGP versions
+1. Check Hilt version matches Kotlin/AGP versions (see `gradle/libs.versions.toml`)
 2. Current working combination:
-   - Hilt 2.52
-   - Kotlin 1.9.24
-   - AGP 8.5.2
-3. Ensure KSP is configured correctly
+   - Hilt 2.60
+   - Kotlin 2.4
+   - AGP 9.4
+   - KSP 2.3
+3. Hilt is processed by KSP (`ksp(libs.hilt.compiler)`), not kapt
 4. Clean and rebuild:
    ```bash
    ./gradlew clean
@@ -36,15 +37,23 @@ This document provides solutions to common issues encountered when developing Tr
 - Runtime crashes with Compose
 
 **Solution**:
-1. Check `composeOptions.kotlinCompilerExtensionVersion` in `app/build.gradle.kts`
-2. Current working: 1.5.14 for Kotlin 1.9.24
-3. Use [Compose-Kotlin compatibility matrix](https://developer.android.com/jetpack/androidx/releases/compose-kotlin)
-4. Update both versions together:
-   ```kotlin
-   composeOptions {
-       kotlinCompilerExtensionVersion = "1.5.14"
-   }
-   ```
+1. Kotlin 2.x uses the Compose compiler Gradle plugin. Its version is the Kotlin version.
+2. Check the `kotlin-compose` plugin is applied in `app/build.gradle.kts` and uses the same version as Kotlin in `libs.versions.toml`
+3. Do not add `composeOptions { kotlinCompilerExtensionVersion }`. It is not used with Kotlin 2.x
+4. Check the Compose BOM is compatible with the Kotlin version
+
+### Built-in Kotlin Errors
+
+**Problem**: Plugin or Kotlin configuration errors after adding a module
+
+**Symptoms**:
+- `Cannot add extension with name 'kotlin'`
+- `kotlinOptions` is unresolved
+
+**Solution**:
+1. AGP 9 has built-in Kotlin. Do not apply the `org.jetbrains.kotlin.android` plugin to a module
+2. Set the JVM target through `compileOptions` only
+3. Compose still needs the `kotlin-compose` plugin
 
 ### KSP Errors
 
@@ -56,15 +65,20 @@ This document provides solutions to common issues encountered when developing Tr
 - Hilt/Room code not generated
 
 **Solution**:
-1. KSP version must match Kotlin version exactly
-2. Format: `<kotlin-version>-<ksp-version>`
-3. Current working: `1.9.24-1.0.20` for Kotlin 1.9.24
-4. Update in `libs.versions.toml`:
-   ```toml
-   [versions]
-   kotlin = "1.9.24"
-   ksp = "1.9.24-1.0.20"
-   ```
+1. KSP 2.x versions (for example `2.3.x`) are independent of the Kotlin version, but must support the Kotlin version in use
+2. Check the `ksp` version in `libs.versions.toml` against the [KSP releases](https://github.com/google/ksp/releases)
+3. Update Kotlin, KSP, Hilt and Room together
+
+### Missing Android SDK
+
+**Problem**: Gradle cannot find the Android SDK
+
+**Symptoms**:
+- `SDK location not found`
+
+**Solution**:
+1. Set `ANDROID_HOME`, or add `sdk.dir=/path/to/Android/sdk` to `local.properties`
+2. `local.properties` is git-ignored. Do not commit it
 
 ### Gradle Sync Fails
 
@@ -119,14 +133,14 @@ This document provides solutions to common issues encountered when developing Tr
 **Solution**:
 1. Ensure `Logger.init()` is called in `Application.onCreate()`:
    ```kotlin
-   class TranscriptAIApplication : Application() {
+   class TranscriptAiApplication : Application() {
        override fun onCreate() {
            super.onCreate()
            Logger.init()  // Must be called!
        }
    }
    ```
-2. Check Logcat filter is set to `TranscriptAI`
+2. Check Logcat filter is set to `TranscriptAI-Log`
 3. Verify log level:
    ```bash
    adb shell setprop log.tag.TranscriptAI VERBOSE
@@ -151,7 +165,7 @@ This document provides solutions to common issues encountered when developing Tr
 2. Check Application class is registered in `AndroidManifest.xml`:
    ```xml
    <application
-       android:name=".TranscriptAIApplication"
+       android:name=".TranscriptAiApplication"
        ...
    ```
 3. Ensure all required modules are provided in `AppModule.kt`
@@ -206,7 +220,7 @@ This document provides solutions to common issues encountered when developing Tr
    ```
 3. Check logcat for extension logs:
    ```bash
-   adb logcat -s transcriptaiYouTubeSubtitleDownloader
+   adb logcat -s TranscriptAI-YouTubeSubtitleDownloader
    ```
 4. Test with known working YouTube URL (public video with subtitles)
 5. Clear extension cache:
@@ -319,7 +333,7 @@ This document provides solutions to common issues encountered when developing Tr
 For app:
 ```bash
 adb shell setprop log.tag.TranscriptAI VERBOSE
-adb logcat -s TranscriptAI:V
+adb logcat -s TranscriptAI-Log:V
 ```
 
 For extension:
@@ -327,7 +341,7 @@ For extension:
 YouTubeSubtitleDownloader.setLogLevel(LogLevel.VERBOSE)
 ```
 ```bash
-adb logcat -s transcriptaiYouTubeSubtitleDownloader:V
+adb logcat -s TranscriptAI-YouTubeSubtitleDownloader:V
 ```
 
 ### View All Dependencies
@@ -389,16 +403,14 @@ When reporting issues, include:
 
 ### "Cannot inline bytecode built with JVM target 1.8"
 
-**Solution**: Ensure consistent JVM target across all modules
+**Solution**: Ensure consistent JVM target across all modules (both `app` and the extension use 21)
 ```kotlin
 compileOptions {
-    sourceCompatibility = JavaVersion.VERSION_11
-    targetCompatibility = JavaVersion.VERSION_11
-}
-kotlinOptions {
-    jvmTarget = "11"
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
 }
 ```
+With AGP 9 built-in Kotlin, the Kotlin JVM target follows `compileOptions`. There is no `kotlinOptions` block.
 
 ### "Duplicate class found in modules"
 

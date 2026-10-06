@@ -164,7 +164,9 @@ If probing fails (all 5 candidates rejected), the app shows a Version Input scre
 1. Try each preference in order (e.g., `["en", "hi", "auto"]`)
 2. Match `languageCode` field (case-insensitive)
 3. Special case: `"auto"` matches tracks where `kind == "asr"`
-4. Fallback: First available track if no preference matches
+4. An exact code wins over a regional variant (`"es"` matches `"es-419"` only when there is no `"es"` track)
+5. Fallback: First available track if no preference matches. The result says no requested language matched
+6. The result also lists every caption track the video offers, so the app can offer a language switch
 
 ## Error Handling
 

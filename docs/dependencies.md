@@ -1,6 +1,8 @@
 # Dependencies Guide
 
-This document lists all dependencies used in the TranscriptAI project.
+This document lists the dependencies used in the TranscriptAI project and what they are for.
+
+Exact versions live in `gradle/libs.versions.toml`. They are not repeated here, except the critical ones below.
 
 ## App Dependencies
 
@@ -13,16 +15,22 @@ This document lists all dependencies used in the TranscriptAI project.
 
 ### Jetpack Compose
 
-- `androidx.compose.bom` - Compose Bill of Materials (version 2024.09.00)
+- `androidx.compose.bom` - Compose Bill of Materials
 - `androidx.compose.ui` - Compose UI toolkit
 - `androidx.compose.material3` - Material3 design components
+- `androidx.compose.material:material-icons-extended` - Extended Material icons
 - `androidx.activity:activity-compose` - Compose integration for Activities
+- `androidx.navigation:navigation-compose` - Screen navigation
 
 ### Dependency Injection
 
-- `com.google.dagger:hilt-android` (2.52) - Hilt dependency injection
+- `com.google.dagger:hilt-android` - Hilt dependency injection
 - `androidx.hilt:hilt-navigation-compose` - Hilt navigation for Compose
-- `com.google.devtools.ksp` - Kotlin Symbol Processing (for Hilt)
+- `com.google.devtools.ksp` - Kotlin Symbol Processing (for Hilt and Room)
+
+### Database
+
+- `androidx.room:room-runtime`, `room-ktx`, `room-compiler` (KSP) - Stores AI prompts
 
 ### Networking
 
@@ -51,9 +59,9 @@ This document lists all dependencies used in the TranscriptAI project.
 
 **Self-contained** - bundles its own dependencies:
 
-- OkHttp 4.12.0 (HTTP client)
+- OkHttp (HTTP client)
 - OkHttp Logging Interceptor (debug logging)
-- Kotlinx Coroutines 1.7.3 (async operations)
+- Kotlinx Coroutines (async operations)
 - AndroidX Core KTX (Android utilities)
 - Android XML Pull Parser (built-in)
 
@@ -61,31 +69,23 @@ This document lists all dependencies used in the TranscriptAI project.
 
 ### Critical Version Constraints
 
-**Android Gradle Plugin (AGP)**: 8.5.2
-**Kotlin**: 1.9.24
-**KSP**: 1.9.24-1.0.20
-**Hilt**: 2.52
-**Compose BOM**: 2024.09.00
-**Compose Compiler**: 1.5.14
+| Component | Notes |
+|-----------|-------|
+| Gradle 9.8 | Wrapper in `gradle/wrapper/gradle-wrapper.properties` |
+| Android Gradle Plugin 9.4 | Built-in Kotlin. No `kotlin-android` plugin |
+| Kotlin 2.4 | Compose via the `kotlin-compose` Gradle plugin, same version as Kotlin |
+| KSP 2.3 | Must support the Kotlin version in use |
+| Hilt 2.60 | Processed with KSP |
+| Room 2.8 | Processed with KSP |
+| Java 21 | `compileOptions` source and target in `app` and the extension |
+| Compose BOM | Pinned in `libs.versions.toml` |
 
 ### Important Notes
 
-1. **Kotlin 2.x**: Do not upgrade to Kotlin 2.x without updating Compose plugin configuration
-2. **KSP Version**: Must match Kotlin version exactly (format: `<kotlin-version>-<ksp-version>`)
-3. **Compose Compiler**: Must be compatible with Kotlin version
-   - Kotlin 1.9.24 → Compose Compiler 1.5.14
-4. **Hilt**: Should be compatible with Kotlin and AGP versions
-
-## Version Compatibility Matrix
-
-| Component | Version | Compatible With |
-|-----------|---------|-----------------|
-| AGP | 8.5.2 | Kotlin 1.9.24 |
-| Kotlin | 1.9.24 | AGP 8.5.2, Compose 1.5.14 |
-| KSP | 1.9.24-1.0.20 | Kotlin 1.9.24 |
-| Hilt | 2.52 | Kotlin 1.9.24, AGP 8.5.2 |
-| Compose BOM | 2024.09.00 | Compose Compiler 1.5.14 |
-| Compose Compiler | 1.5.14 | Kotlin 1.9.24 |
+1. **Built-in Kotlin**: AGP 9 compiles Kotlin itself. Do not apply `org.jetbrains.kotlin.android`. There is no `kotlinOptions` block.
+2. **Compose compiler**: No `composeOptions`. The `kotlin-compose` plugin version follows Kotlin.
+3. **Upgrade together**: Kotlin, KSP, Hilt, Room and AGP depend on each other. Upgrade them in one change and run a full build.
+4. **JDK**: Builds run on current JDKs. Android Studio's bundled JBR works.
 
 ## Adding New Dependencies
 
@@ -97,25 +97,21 @@ This document lists all dependencies used in the TranscriptAI project.
 4. **Sync Gradle**
 5. **Update this document**
 
-### Example: Adding Room Database
+### Example: Adding a Library
 
 ```toml
 # In libs.versions.toml
 [versions]
-room = "2.6.0"
+example = "1.0.0"
 
 [libraries]
-room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
-room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
-room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
+example-lib = { group = "com.example", name = "example-lib", version.ref = "example" }
 ```
 
 ```kotlin
 // In app/build.gradle.kts
 dependencies {
-    implementation(libs.room.runtime)
-    implementation(libs.room.ktx)
-    ksp(libs.room.compiler)
+    implementation(libs.example.lib)
 }
 ```
 
@@ -150,16 +146,15 @@ dependencies {
 ### Common Dependency Issues
 
 **Problem**: Hilt compilation errors
-- **Solution**: Check Hilt version matches Kotlin/AGP versions
-- **Current Working**: Hilt 2.52 + Kotlin 1.9.24 + AGP 8.5.2
+- **Solution**: Check Hilt version supports the Kotlin and AGP versions in use
+- **Current Working**: Hilt 2.60 + Kotlin 2.4 + AGP 9.4 + KSP 2.3
 
 **Problem**: Compose compiler errors
-- **Solution**: Ensure `composeOptions.kotlinCompilerExtensionVersion` matches Kotlin version
-- **Current**: 1.5.14 for Kotlin 1.9.24
+- **Solution**: Ensure the `kotlin-compose` plugin version equals the Kotlin version
+- Do not use `composeOptions.kotlinCompilerExtensionVersion` with Kotlin 2.x
 
 **Problem**: KSP errors
-- **Solution**: KSP version must match Kotlin version exactly
-- **Current**: 1.9.24-1.0.20 for Kotlin 1.9.24
+- **Solution**: Check the KSP version supports the Kotlin version in use
 
 **Problem**: Version conflicts
 - **Solution**: Use `./gradlew app:dependencies` to inspect dependency tree
@@ -180,11 +175,9 @@ dependencies {
 
 ## Future Dependencies (Planned)
 
-- [ ] Room Database - Local caching
-- [ ] DataStore - Preferences storage
+- [ ] DataStore - Preferences storage (settings use SharedPreferences today)
 - [ ] WorkManager - Background tasks
 - [ ] Coil - Image loading (if needed)
-- [ ] Navigation Compose - Multi-screen navigation
 
 ## Related Documentation
 

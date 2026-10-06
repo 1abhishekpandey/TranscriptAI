@@ -4,11 +4,12 @@
 
 TranscriptAI follows strict separation of concerns across three layers:
 
-### 1. Presentation Layer (`ui/`)
-- Views (Composables)
+### 1. Presentation Layer (`presentation/`)
+- Views (Composables), one package per screen
 - ViewModels
 - UI Models/State
-- Navigation
+- Navigation (`presentation/navigation/`)
+- Theme lives in `ui/theme/`
 
 ### 2. Domain Layer (`domain/`)
 - Use Cases (business logic)

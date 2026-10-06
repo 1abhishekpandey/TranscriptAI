@@ -1,81 +1,80 @@
 # TranscriptAI
 
-A modern Android application that enables seamless YouTube video transcript extraction and AI-powered analysis. Download subtitles, view them instantly, and export to your favorite AI platforms.
+An Android app that gets the transcript of any YouTube video and sends it to ChatGPT or Claude with a prompt, in a few taps.
 
-**Check out this:** [FastScribe](https://github.com/1abhishekpandey/FastScribe/) - Fast parallel video-to-text transcription powered by OpenAI's Whisper AI for working on PC
+Share a video from the YouTube app, and the app can forward its transcript straight to your AI app. No copy-pasting.
 
 ## Features
 
-- **YouTube Transcript Download**: Extract subtitles from any YouTube video using direct InnerTube API integration
-- **Clean Subtitle Viewer**: Intuitive scrollable interface for reading transcripts
-- **Smart Export Options**:
-  - Copy to clipboard
-  - Direct share to ChatGPT/Claude apps
-  - Export as text file
-- **Self-Contained Extension**: Reusable YouTube subtitle downloader module
+### Get a transcript
 
-## Tech Stack
+- Paste a YouTube link, or use **Share → Transcript AI** in the YouTube app.
+- Works with `youtube.com`, `youtu.be`, mobile and live links.
 
-- **100% Kotlin** with Jetpack Compose
-- **Clean Architecture** + MVVM pattern
-- **Kotlin Coroutines** for async operations
-- **Material3** design system
-- **Min SDK**: 25 (Android 7.1) | **Target SDK**: 36 (Android 15)
+### Pick the language
 
-## Quick Start
+- **Auto-generated** (default): the captions YouTube makes from the video's speech.
+- **Your last pick**: the language you chose last, shown in its own script (for example हिन्दी).
+- **Other languages**: opens a settings page with 40+ languages, each written in its own script, with search.
+- Your choice is remembered.
+- Home has a "Try a sample video" link (a TED talk with 50+ caption languages) so you can try it out.
 
-```bash
-# Build debug APK
-./gradlew assembleDebug
+### Read the transcript
 
-# Run tests
-./gradlew test
+- Video title, and a button to open the video in YouTube.
+- Switch to any caption language the video has.
+- A note when your language is not available, telling you which one is shown instead.
+- Search inside the transcript.
+- Copy it, with a word count.
 
-# Install on device
-./gradlew installDebug
-```
+### Add an AI prompt
 
-## Architecture
+- Turn on the AI summariser to put a prompt in front of the transcript, for example "Summarise this".
+- Pick from saved prompts, or add and edit your own.
 
-```
-Presentation Layer (Compose UI)
-        ↓
-   ViewModels
-        ↓
-    Use Cases
-        ↓
-  Repositories
-        ↓
-Data Sources (API/Local)
-```
+### Share
 
-See [docs/architecture.md](docs/architecture.md) for detailed architecture guidelines.
+- Send to **ChatGPT** or **Claude**, or copy to the clipboard.
+- If the app does not accept shared text directly, the transcript is copied and the app opens, so you can paste it.
+- **Auto-forward**: when on, sharing a video from YouTube goes straight to ChatGPT or Claude with your prompt. You choose which app.
 
-## Future Scope (Based on needs)
+### Keeps working
 
-### Multi-Platform Support
-- **Video Platforms**: Extend support to other video platforms
-- **Social Media**: Support for Instagram, Twitter/X video transcripts
-- **File Import**: Load existing text/transcript files from device storage
+- YouTube sometimes rejects the client version the app uses. The app tries newer versions by itself.
+- If that fails, a **Fix version** screen lets you enter a version by hand.
 
-### Built-in LLM Integration
-- **On-Device AI**: Integrate lightweight LLMs for offline transcript analysis
-- **Smart Summarization**: Generate concise summaries directly within the app
-- **Key Points Extraction**: Automatically highlight important moments
-- **Multi-Language Translation**: Translate transcripts on-the-fly
-- **Custom Prompts**: User-defined AI analysis templates
-- **Hybrid Approach**: Option to use cloud LLMs (GPT/Claude API) or on-device models based on user preference
+## How to use
 
-## Documentation
+1. Open a video in the YouTube app and tap **Share → Transcript AI**. Or paste the link in the app.
+2. Pick a language if you do not want auto-generated captions.
+3. Read the transcript, or add a prompt.
+4. Tap the share button and choose ChatGPT, Claude or Copy.
 
-- [Architecture Guidelines](docs/architecture.md)
-- [Coding Standards](docs/coding-standards.md)
-- [Build Commands](docs/build-commands.md)
-- [YouTube InnerTube API Guide](docs/youtube-innertube-api.md)
+## Install
+
+1. Download the latest APK from the [Releases page](https://github.com/1abhishekpandey/TranscriptAI/releases/latest).
+2. Open it on your phone and allow installs from your browser or file manager if Android asks.
+
+**Requires Android 7.1 or newer.**
+
+### Updating from version 1.3 or earlier
+
+- Versions 1.3 and earlier were signed with a key that is no longer available.
+- To install a newer version, uninstall the old app first.
+- Your saved prompts and settings will be lost.
+
+## Building from source
+
+- Android Studio and JDK 21 or newer.
+- `./gradlew assembleDebug`
+
+## Also see
+
+[FastScribe](https://github.com/1abhishekpandey/FastScribe/) turns video files into text on a PC, using OpenAI's Whisper, with fast parallel transcription.
 
 ## License
 
-This project is licensed under the MIT License.
+MIT License.
 
 ---
 

@@ -1,221 +1,121 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Guidance for Claude Code when working in this repository.
 
-## High-Level Overview
+## What this is
 
-**TranscriptAI** is a modern Android application that enables users to download YouTube video subtitles/transcripts, view them in an intuitive scrollable interface, and seamlessly export them to AI platforms (ChatGPT, Claude) or other destinations.
+**TranscriptAI** (app label "Transcript AI") is an Android app. It downloads a YouTube video's transcript, shows it, and sends it to ChatGPT or Claude, with an optional prompt in front.
 
-### What Makes This Project Unique
+- Package: `com.abhishek.transcriptai`
+- Min SDK 25 | Target SDK 36
+- Kotlin, Jetpack Compose, Material3, Hilt, Room, Coroutines/Flow
+- Clean Architecture + MVVM: Presentation → Domain ← Data. Domain is pure Kotlin.
+- The subtitle downloader is a separate module: `extensions/youtubeSubtitleDownloader/`.
 
-- **Self-Contained Extension Architecture**: The YouTube subtitle downloader is built as an independent, reusable module at `extensions/youtubeSubtitleDownloader/` that can be integrated into other projects
-- **Direct YouTube API Integration**: Uses YouTube's InnerTube API (the same API the YouTube website uses) for reliable subtitle extraction without third-party dependencies
-- **Clean Architecture Pattern**: Strictly layered architecture (Presentation → Domain ← Data) ensuring maintainability, testability, and scalability
-- **Modern Android Stack**: Built entirely with Jetpack Compose, Kotlin Coroutines, and Material3 following current Android best practices
+## Toolchain
 
-### Core User Journey
+Versions live in `gradle/libs.versions.toml`. The non-obvious parts:
 
-1. User pastes/enters a YouTube video URL (or shares from YouTube app via deep link)
-2. App downloads subtitles using the extension module
-3. Subtitles are displayed in AI Summariser screen with scrollable text viewer
-4. User can optionally:
-   - Enable AI Summariser to prepend custom prompts
-   - Select from predefined AI prompts or create custom ones
-5. User shares via Share FAB:
-   - **Copy to Clipboard** - Always available
-   - **Share to ChatGPT** - Direct ACTION_SEND intent or clipboard + launch fallback
-   - **Share to Claude** - Direct ACTION_SEND intent or clipboard + launch fallback
+- Gradle 9.8, Android Gradle Plugin 9.4.
+- AGP 9 has **built-in Kotlin**. Do not add the `kotlin-android` plugin to a module.
+- Kotlin 2.4 with the Compose compiler Gradle plugin (`kotlin-compose`). No `composeOptions`, no `kotlinOptions`.
+- KSP 2.3, Hilt 2.60, Room 2.8.
+- Java 21 target. Builds on current JDKs. Android Studio's bundled JBR works.
+- The Android SDK location must be set: `ANDROID_HOME`, or `sdk.dir` in `local.properties` (git-ignored).
 
-### Technical Foundation
-
-**Architecture**: Clean Architecture + MVVM pattern
-**UI Framework**: Jetpack Compose (100% declarative UI)
-**Language**: Kotlin (100%)
-**Min SDK**: 25 (Android 7.1) | **Target SDK**: 36 (Android 15)
-**Build System**: Gradle with Kotlin DSL
-**Dependency Injection**: Hilt
-**Async Operations**: Kotlin Coroutines + Flow
-**Database**: Room (for AI prompts)
-**Preferences**: SharedPreferences (for app config)
-
-## Quick Links
-
-- [Architecture Guidelines](docs/architecture.md) - Clean Architecture layers, MVVM implementation, dependency flow
-- [Coding Standards](docs/coding-standards.md) - Naming conventions, state management, error handling, testing
-- [Build Commands](docs/build-commands.md) - All build, test, and deployment commands
-- [YouTube InnerTube API Guide](docs/youtube-innertube-api.md) - How the subtitle downloader extension works
-
-## Project Structure
-
-```
-TranscriptAI/
-├── app/src/main/java/com/abhishek/transcriptai/
-│   ├── data/
-│   │   ├── repository/          # Repository implementations (incl. AIShareRepositoryImpl)
-│   │   ├── local/               # Room database, SharedPreferences, entities
-│   │   └── mapper/              # Data ↔ Domain mappers
-│   ├── domain/
-│   │   ├── model/               # Domain entities (incl. ShareTarget)
-│   │   ├── repository/          # Repository interfaces (incl. AIShareRepository)
-│   │   └── usecase/             # Use cases (download, format, config, prompts)
-│   ├── presentation/            # UI layer
-│   │   ├── home/                # Home screen (URL input, download trigger)
-│   │   ├── summariser/          # AI Summariser screen (subtitle display + sharing)
-│   │   ├── prompteditor/        # Prompt management screen
-│   │   └── navigation/          # Navigation setup
-│   ├── di/                      # Dependency injection (Hilt modules)
-│   ├── util/                    # Utilities (Logger, ClipboardHelper, ShareHelper)
-│   └── ui/theme/                # Theme, colors, typography
-├── extensions/
-│   └── youtubeSubtitleDownloader/  # Self-contained subtitle downloader module
-├── docs/                        # Shared documentation
-└── CLAUDE.md                    # This file
-```
-
-## Architecture Overview
-
-See [Architecture Guidelines](docs/architecture.md) for detailed information.
-
-**Quick Summary**:
-- **3 Layers**: Presentation → Domain ← Data
-- **MVVM Pattern**: View (Composable) → ViewModel → Use Cases → Repository
-- **Domain Layer**: Pure Kotlin, no Android dependencies
-- **Clean Architecture**: Strict separation of concerns
-
-## Development Workflow
-
-### Build Commands
-
-See [Build Commands](docs/build-commands.md) for all commands.
+See [Build Commands](docs/build-commands.md).
 
 ```bash
-./gradlew assembleDebug              # Debug build
-./gradlew test                       # Unit tests
-./gradlew lint                       # Run lint checks
+./gradlew assembleDebug
+./gradlew test
+./gradlew lint
 ```
 
-### Coding Standards
+## Release signing
 
-See [Coding Standards](docs/coding-standards.md) for detailed guidelines.
+- There is no signing config in the repo.
+- The release key and passwords live outside the repo.
+- Never commit `*.jks`, keystores or passwords.
 
-**Key Conventions**:
-- Use Cases: `VerbNounUseCase` (e.g., `DownloadSubtitlesUseCase`)
-- ViewModels: `FeatureViewModel` (e.g., `HomeViewModel`)
-- Repositories: `EntityRepository` (e.g., `SubtitleRepository`)
-- Composables: PascalCase (e.g., `SubtitleScreen`)
+## Screens
 
-## Feature: YouTube Subtitle Downloader
+Navigation is in `presentation/navigation/`.
 
-### Implementation Status
+- **Home**: URL input, language choice, auto-forward bar ("Auto-forward from YouTube"; called auto-share in code).
+- **Summariser** (the transcript page): title, language switcher, search, prompt selector, share sheet.
+- **Prompt editor**: add and edit prompts.
+- **Language settings**: 40+ languages with search, opened from Home ("Other languages").
+- **Version input**: manual YouTube client version, shown when auto-probing fails.
 
-The YouTube subtitle downloader is implemented as a **self-contained extension module** at `extensions/youtubeSubtitleDownloader/`.
+## Key facts and gotchas
 
-See [YouTube Subtitle Downloader Extension CLAUDE.md](extensions/youtubeSubtitleDownloader/CLAUDE.md) for module-specific documentation.
+### Language choice
 
-### Core Functionality
+- Saved in SharedPreferences (`LanguagePreferences`), exposed through `LanguagePreferenceRepository`.
+- Two modes: auto-generated, or the language last picked on the settings page.
+- The language list is `domain/model/SubtitleLanguage.kt`. A language can have several YouTube codes, tried in order (for example Hebrew is `iw` on older videos, `he` on newer ones).
+- `LanguageChoice.toLanguagePreferences()` turns the choice into the code list passed to the downloader. `"auto"` means YouTube's speech-generated captions.
+- The Home screen and the auto-share flow both read the saved choice.
 
-1. **Subtitle Downloading**: Download subtitles from YouTube videos (via extension module)
-2. **AI Prompt Management**: Create, edit, delete, and select AI prompts (stored in Room DB)
-3. **Subtitle Display**: Scrollable text area with word count in AI Summariser screen
-4. **Smart Sharing**: Share to ChatGPT/Claude with multiple fallback strategies
-5. **AI Integration**: Optionally prepend AI prompts to subtitles before sharing
+### Sharing
 
-### App-Level Implementation (Current Status: ✅ Fully Implemented)
+- Share to ChatGPT or Claude: `ACTION_SEND` first, then clipboard + launch the app as a fallback.
+- Android 11+ needs the `<queries>` block in `AndroidManifest.xml` to detect the ChatGPT and Claude apps. Keep it.
+- `MainActivity` handles `ACTION_VIEW` (YouTube links) and `ACTION_SEND` (YouTube share sheet).
+- Auto-share: a share from YouTube with the toggle on stores the URL in `SubtitleCacheRepository`, opens the Summariser in auto-download mode, shares to the chosen app, then closes the app.
+- `SubtitleCacheRepository` is an in-memory hand-off between screens. Nothing is persisted.
 
-**Domain Layer** (Pure Kotlin, no Android dependencies):
-- **Models**: `ShareTarget`, `Prompt`, `SubtitleResult`, `SummariserConfig`
-- **Repository Interfaces**: `SubtitleRepository`, `AIShareRepository`, `PromptRepository`, `SummariserConfigRepository`
-- **Use Cases**:
-  - `DownloadSubtitlesUseCase`: Fetch subtitles from YouTube (uses extension)
-  - `FormatSubtitleForCopyUseCase`: Format subtitle with AI prompt prepending
-  - `GetPromptsUseCase`, `AddPromptUseCase`, `DeletePromptUseCase`: Prompt CRUD
-  - `GetSummariserConfigUseCase`, `ToggleAiSummariserUseCase`, `UpdateSummariserConfigUseCase`: Config management
+### Storage
 
-**Data Layer** (Android implementations):
-- **Repositories**:
-  - `SubtitleRepositoryImpl`: Uses YouTubeSubtitleDownloader extension
-  - `AIShareRepositoryImpl`: ACTION_SEND intent + clipboard fallback for ChatGPT/Claude
-  - `PromptRepositoryImpl`: Room database operations
-  - `SummariserConfigRepositoryImpl`: SharedPreferences operations
-  - `SubtitleCacheRepository`: In-memory cache for subtitle sharing between screens
-- **Data Sources**:
-  - `YouTubeSubtitleDownloader`: Extension module for subtitle fetching
-  - `AppDatabase` (Room): Stores AI prompts
-  - `SummariserPreferences`: Stores app configuration
+- Prompts: Room (`AppDatabase`). Default prompts are seeded.
+- App settings (AI toggle, selected prompt, auto-share, language): SharedPreferences.
 
-**Presentation Layer** (MVVM):
-- **ViewModels**:
-  - `HomeViewModel`: Handle URL input, trigger subtitle download
-  - `SummariserViewModel`: Display subtitles, manage AI prompts, handle sharing
-  - `PromptEditorViewModel`: Manage prompt CRUD operations
-- **Screens (Jetpack Compose)**:
-  - `HomeScreen`: URL input with download button
-  - `SummariserScreen`: Subtitle display with AI toggle, prompt selector, Share FAB
-  - `PromptEditorScreen`: Prompt management UI
-- **Components**:
-  - `ShareBottomSheet`: Modal sheet with Copy/ChatGPT/Claude options
+### YouTube client version
 
-## Key Dependencies
+- The extension uses YouTube's InnerTube API with the ANDROID client. YouTube rejects old client versions.
+- The extension probes newer versions on its own. If that fails, the app shows the Version input screen.
+- Details and the do-not-send-a-User-Agent rule: [YouTube InnerTube API Guide](docs/youtube-innertube-api.md).
 
-### Current Dependencies (app/build.gradle.kts)
-- **Compose BOM** (2024.09.00): UI framework with Material3
-- **Hilt** (2.52): Dependency injection with KSP
-- **Room** (2.6.1): Local database for AI prompts
-- **Coroutines**: Async operations with Flow
-- **Navigation Compose**: Multi-screen navigation
-- **Retrofit + OkHttp**: HTTP client (for future features)
-- **androidx.lifecycle**: ViewModel and lifecycle management
+### Logging
 
-### Extension Module
-- **YouTube Subtitle Downloader**: `implementation(project(":extensions:youtubeSubtitleDownloader"))`
-  - Self-contained module using YouTube InnerTube API
-  - See [Extension CLAUDE.md](extensions/youtubeSubtitleDownloader/CLAUDE.md)
+- Use `Logger` (`util/Logger.kt`, tag `TranscriptAI-Log`), not `Log` or Timber directly.
+- The extension has its own logger. See [Logging Guide](docs/logging.md).
 
-## Project-Specific Notes
+## Extension: YouTube Subtitle Downloader
 
-- Application package: `com.abhishek.transcriptai`
-- Java version: 11
-- Compose is enabled (buildFeatures.compose = true)
-- Edge-to-edge display enabled in MainActivity
-- No ProGuard rules for debug builds
-- InnerTube ANDROID client version is auto-probed when rejected (up to +5 major versions), with manual override fallback via Version Input screen; see [YouTube InnerTube API Guide](docs/youtube-innertube-api.md)
+- Location: `extensions/youtubeSubtitleDownloader/`. Self-contained library module, no dependency on app code.
+- The app uses it through `data/repository/SubtitleRepositoryImpl.kt`, injected by Hilt (`di/AppModule.kt`).
+- Module docs: [extensions/youtubeSubtitleDownloader/CLAUDE.md](extensions/youtubeSubtitleDownloader/CLAUDE.md).
 
-## Extensions & Modules
-
-### YouTube Subtitle Downloader Extension
-
-**Location**: `extensions/youtubeSubtitleDownloader/`
-**Documentation**: [Extension CLAUDE.md](extensions/youtubeSubtitleDownloader/CLAUDE.md)
-
-**Integration**:
-```kotlin
-// Add to app/build.gradle.kts
-dependencies {
-    implementation(project(":extensions:youtubeSubtitleDownloader"))
-}
-```
-
-**Usage**:
 ```kotlin
 val downloader = YouTubeSubtitleDownloader.getInstance(context)
-val result = downloader.downloadSubtitles("https://www.youtube.com/watch?v=VIDEO_ID")
+val result = downloader.downloadSubtitles(
+    url = "https://www.youtube.com/watch?v=VIDEO_ID",
+    languagePreferences = listOf("hi", "en", "auto")
+)
 ```
 
-See [YouTube InnerTube API Guide](docs/youtube-innertube-api.md) for how the extension works under the hood.
+## Conventions
 
-## Documentation Index
+- Use cases: `VerbNounUseCase`. ViewModels: `FeatureViewModel`. Repositories: `EntityRepository`.
+- UI state and events: `FeatureUiState`, `FeatureUiEvent`.
+- UI state is an immutable data class in a `StateFlow`, collected with `collectAsState()`.
+- Domain results use the `Result` sealed class.
 
-All shared documentation is in the `docs/` directory:
+More: [Coding Standards](docs/coding-standards.md), [Architecture](docs/architecture.md).
 
-- **[architecture.md](docs/architecture.md)** - Clean Architecture layers, MVVM, dependency flow
-- **[coding-standards.md](docs/coding-standards.md)** - Naming, state management, error handling, testing
-- **[build-commands.md](docs/build-commands.md)** - Build, test, lint, install commands
-- **[youtube-innertube-api.md](docs/youtube-innertube-api.md)** - InnerTube API implementation details
+## Documentation
 
-Module-specific documentation:
-- **[app/CLAUDE.md](app/CLAUDE.md)** - App module documentation (detailed implementation guide)
-- **[extensions/youtubeSubtitleDownloader/CLAUDE.md](extensions/youtubeSubtitleDownloader/CLAUDE.md)** - Subtitle downloader extension
+- [docs/architecture.md](docs/architecture.md): layers, MVVM, dependency flow
+- [docs/coding-standards.md](docs/coding-standards.md): naming, state, errors, tests
+- [docs/build-commands.md](docs/build-commands.md): build, test, lint, install
+- [docs/dependencies.md](docs/dependencies.md): what each dependency is for, compatibility notes
+- [docs/logging.md](docs/logging.md): logging patterns
+- [docs/troubleshooting.md](docs/troubleshooting.md): common problems
+- [docs/youtube-innertube-api.md](docs/youtube-innertube-api.md): how the extension works
+- [app/CLAUDE.md](app/CLAUDE.md): app module notes
+- [extensions/youtubeSubtitleDownloader/CLAUDE.md](extensions/youtubeSubtitleDownloader/CLAUDE.md): extension notes
 
 ---
 
-**Last Updated**: 2025-11-12
+**Last Updated**: 2026-10-07
