@@ -3,8 +3,10 @@ package com.abhishek.transcriptai.presentation.summariser
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.abhishek.transcriptai.data.repository.SubtitleCacheRepository
+import com.abhishek.transcriptai.domain.model.CaptionTrack
 import com.abhishek.transcriptai.domain.model.Result
 import com.abhishek.transcriptai.domain.model.ShareTarget
+import com.abhishek.transcriptai.domain.model.SubtitleResult
 import com.abhishek.transcriptai.domain.repository.AIShareRepository
 import com.abhishek.transcriptai.domain.repository.AutoShareConfigRepository
 import com.abhishek.transcriptai.domain.repository.LanguagePreferenceRepository
@@ -17,7 +19,9 @@ import com.abhishek.transcriptai.domain.usecase.prompt.GetPromptsUseCase
 import com.abhishek.transcriptai.domain.usecase.subtitle.FormatSubtitleForCopyUseCase
 import com.abhishek.transcriptai.presentation.summariser.components.ShareOption
 import com.abhishek.transcriptai.util.Logger
+import com.abhishek.transcriptai.util.constants.SummariserConstants
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -25,7 +29,7 @@ import javax.inject.Inject
 
 /**
  * ViewModel for the Summariser screen
- * Manages subtitle display, AI prompt selection, and sharing functionality
+ * Manages subtitle display, per-video language switching, AI prompt selection, and sharing functionality
  *
  * @property downloadSubtitlesUseCase Use case for downloading subtitles (auto-share mode)
  * @property subtitleCacheRepository Repository for accessing cached subtitle data
@@ -37,6 +41,7 @@ import javax.inject.Inject
  * @property formatSubtitleForCopyUseCase Use case for formatting subtitle with prompt before copying
  * @property aiShareRepository Repository for sharing content to AI applications
  * @property autoShareConfigRepository Repository for managing auto-share configuration
+ * @property languagePreferenceRepository Repository for the saved language choice (read only here)
  */
 @HiltViewModel
 class SummariserViewModel @Inject constructor(
@@ -56,6 +61,14 @@ class SummariserViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(SummariserUiState())
     val uiState: StateFlow<SummariserUiState> = _uiState.asStateFlow()
 
+    private val _effects = Channel<SummariserUiEffect>(Channel.BUFFERED)
+
+    /** One-time actions for the screen (snackbar messages, clipboard writes) */
+    val effects: Flow<SummariserUiEffect> = _effects.receiveAsFlow()
+
+    /** URL and auto-share flag of the last download started here, kept so Retry can run it again */
+    private var lastAutoDownload: Pair<String, Boolean>? = null
+
     var onNavigateToPromptEditor: () -> Unit = {}
     var onFinishActivity: (() -> Unit)? = null
 
@@ -72,11 +85,28 @@ class SummariserViewModel @Inject constructor(
      */
     fun loadSubtitle(videoId: String) {
         Logger.logI("SummariserViewModel: Loading subtitle for video $videoId")
+
+        // The screen asks again when it comes back from the prompt editor; keep what is already shown
+        if (_uiState.value.subtitleResult?.videoId == videoId) {
+            Logger.logD("SummariserViewModel: Subtitle for video $videoId is already loaded")
+            return
+        }
+
         val cached = subtitleCacheRepository.getCachedSubtitle(videoId)
 
         if (cached != null) {
             Logger.logD("SummariserViewModel: Found cached subtitle - length: ${cached.text.length}, title: ${cached.videoTitle}")
-            _uiState.update { it.copy(subtitleResult = cached, isLoading = false) }
+            _uiState.update { it.copy(subtitleResult = cached, isLoading = false, languageNotice = null) }
+
+            if (!cached.requestedLanguageMatched) {
+                viewModelScope.launch {
+                    val requestedLanguage = languagePreferenceRepository.getLanguageChoice().requestedLanguageName()
+                    val notice = languageUnavailableNotice(requestedLanguage, cached)
+                    _uiState.update { state ->
+                        if (state.subtitleResult == cached) state.copy(languageNotice = notice) else state
+                    }
+                }
+            }
         } else {
             Logger.logE("SummariserViewModel: No cached subtitle found for video $videoId")
             _uiState.update {
@@ -97,11 +127,13 @@ class SummariserViewModel @Inject constructor(
      */
     fun initializeWithAutoDownload(url: String, autoShare: Boolean) {
         Logger.logI("SummariserViewModel: Auto-downloading subtitle for URL: $url")
+        lastAutoDownload = url to autoShare
 
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
 
-            val languagePreferences = languagePreferenceRepository.getLanguageChoice().toLanguagePreferences()
+            val languageChoice = languagePreferenceRepository.getLanguageChoice()
+            val languagePreferences = languageChoice.toLanguagePreferences()
             when (val result = downloadSubtitlesUseCase(url, languagePreferences)) {
                 is Result.Success -> {
                     Logger.logI("SummariserViewModel: Auto-download successful - videoId: ${result.data.videoId}")
@@ -113,7 +145,8 @@ class SummariserViewModel @Inject constructor(
                         it.copy(
                             subtitleResult = result.data,
                             isLoading = false,
-                            shouldAutoShare = autoShare
+                            shouldAutoShare = autoShare,
+                            languageNotice = noticeFor(result.data, languageChoice.requestedLanguageName())
                         )
                     }
                 }
@@ -139,6 +172,13 @@ class SummariserViewModel @Inject constructor(
      * Consumes pending URL from SubtitleCacheRepository and downloads
      */
     fun initializeWithAutoDownloadFromRepository() {
+        // The screen asks again when it comes back from the prompt editor; the pending URL is already used up
+        val current = _uiState.value
+        if (lastAutoDownload != null || current.subtitleResult != null || current.isLoading) {
+            Logger.logD("SummariserViewModel: Auto-download already started, skipping")
+            return
+        }
+
         Logger.logI("SummariserViewModel: Consuming pending URL from repository")
 
         val pendingData = subtitleCacheRepository.consumePendingUrl()
@@ -155,6 +195,20 @@ class SummariserViewModel @Inject constructor(
                     error = "No URL provided for download. Please try sharing again."
                 )
             }
+        }
+    }
+
+    /**
+     * Run the failed download again
+     * Uses the URL of the last download; falls back to the pending URL when none was started yet
+     */
+    fun retry() {
+        val last = lastAutoDownload
+        if (last != null) {
+            Logger.logI("SummariserViewModel: Retrying download for URL: ${last.first}")
+            initializeWithAutoDownload(last.first, last.second)
+        } else {
+            initializeWithAutoDownloadFromRepository()
         }
     }
 
@@ -288,6 +342,12 @@ class SummariserViewModel @Inject constructor(
             is SummariserUiEvent.ShareOptionSelected -> handleShareOption(event.option)
             is SummariserUiEvent.DismissShareSheet -> dismissShareSheet()
             is SummariserUiEvent.NavigateToPromptEditor -> navigateToPromptEditor()
+            is SummariserUiEvent.CopyTranscriptClicked -> copyTranscript()
+            is SummariserUiEvent.RetryClicked -> retry()
+            is SummariserUiEvent.LanguageChipClicked -> showLanguageSheet()
+            is SummariserUiEvent.DismissLanguageSheet -> dismissLanguageSheet()
+            is SummariserUiEvent.LanguageSelected -> switchLanguage(event.track)
+            is SummariserUiEvent.DismissLanguageNotice -> dismissLanguageNotice()
         }
     }
 
@@ -359,6 +419,13 @@ class SummariserViewModel @Inject constructor(
      */
     private fun handleShareOption(option: ShareOption) {
         Logger.logI("SummariserViewModel: Handling share option: $option")
+
+        if (option == ShareOption.CLIPBOARD) {
+            copyTranscript()
+            dismissShareSheet()
+            return
+        }
+
         val subtitle = _uiState.value.subtitleResult?.text
 
         if (subtitle.isNullOrEmpty()) {
@@ -371,7 +438,7 @@ class SummariserViewModel @Inject constructor(
             Logger.logI("SummariserViewModel: Formatted text length: ${formattedText.length}")
 
             val shareTarget = when (option) {
-                ShareOption.CLIPBOARD -> ShareTarget.CLIPBOARD
+                ShareOption.CLIPBOARD -> ShareTarget.CLIPBOARD // Handled above; kept so the mapping stays exhaustive
                 ShareOption.CHATGPT -> ShareTarget.CHATGPT
                 ShareOption.CLAUDE -> ShareTarget.CLAUDE
             }
@@ -388,6 +455,127 @@ class SummariserViewModel @Inject constructor(
             dismissShareSheet()
         }
     }
+
+    /**
+     * Copy the transcript to the clipboard, with the AI prompt in front when it is enabled.
+     * The screen writes to the clipboard and confirms in the snackbar.
+     */
+    private fun copyTranscript() {
+        val subtitle = _uiState.value.subtitleResult?.text
+
+        if (subtitle.isNullOrBlank()) {
+            Logger.logW("SummariserViewModel: Cannot copy - subtitle is empty")
+            _effects.trySend(SummariserUiEffect.ShowMessage("Nothing to copy"))
+            return
+        }
+
+        viewModelScope.launch {
+            val formattedText = formatSubtitleForCopyUseCase(subtitle)
+            Logger.logI("SummariserViewModel: Copying ${formattedText.length} characters")
+            val confirmation = if (formattedText != subtitle) "Copied with AI prompt" else "Transcript copied"
+            _effects.send(
+                SummariserUiEffect.CopyToClipboard(
+                    text = formattedText,
+                    label = SummariserConstants.CLIPBOARD_LABEL_FORMATTED,
+                    confirmation = confirmation
+                )
+            )
+        }
+    }
+
+    /**
+     * Show the language picker sheet
+     */
+    private fun showLanguageSheet() {
+        Logger.logI("SummariserViewModel: Showing language sheet")
+        _uiState.update { it.copy(showLanguageSheet = true) }
+    }
+
+    /**
+     * Dismiss the language picker sheet
+     */
+    private fun dismissLanguageSheet() {
+        Logger.logI("SummariserViewModel: Dismissing language sheet")
+        _uiState.update { it.copy(showLanguageSheet = false) }
+    }
+
+    /**
+     * Dismiss the "language isn't available" banner
+     */
+    private fun dismissLanguageNotice() {
+        _uiState.update { it.copy(languageNotice = null) }
+    }
+
+    /**
+     * Download the transcript again in the chosen language, in place.
+     * Only this video is affected; the language saved on the home screen stays as it is.
+     * On failure the transcript that was showing stays and a snackbar explains what went wrong.
+     *
+     * @param track The caption track to download
+     */
+    private fun switchLanguage(track: CaptionTrack) {
+        dismissLanguageSheet()
+
+        val current = _uiState.value.subtitleResult
+        if (current == null || _uiState.value.isSwitchingLanguage) return
+        if (current.isShowing(track)) {
+            Logger.logD("SummariserViewModel: Track ${track.languageCode} is already showing")
+            return
+        }
+
+        val label = track.label()
+        Logger.logI("SummariserViewModel: Switching language to ${track.languageCode} (auto=${track.isAutoGenerated})")
+
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSwitchingLanguage = true, switchingLanguageLabel = label) }
+
+            // The downloader only accepts a video link, not a bare video ID
+            when (val result = downloadSubtitlesUseCase(youTubeWatchUrl(current.videoId), track.requestPreferences())) {
+                is Result.Success -> {
+                    // Keep what the new download doesn't repeat, so the header and language list stay intact
+                    val updated = result.data.copy(
+                        videoTitle = result.data.videoTitle ?: current.videoTitle,
+                        availableTracks = result.data.availableTracks.ifEmpty { current.availableTracks }
+                    )
+                    // The screen reloads from the cache when it comes back from the prompt editor
+                    subtitleCacheRepository.cacheSubtitle(updated)
+
+                    // Auto-generated captions have no language name to report, so the notice words it generically
+                    val requestedLanguage = if (track.isAutoGenerated) {
+                        null
+                    } else {
+                        findCatalogLanguage(track.languageCode)?.englishName ?: track.name
+                    }
+                    _uiState.update {
+                        it.copy(
+                            subtitleResult = updated,
+                            isSwitchingLanguage = false,
+                            switchingLanguageLabel = null,
+                            languageNotice = noticeFor(updated, requestedLanguage)
+                        )
+                    }
+                }
+                is Result.Error -> {
+                    Logger.logE("SummariserViewModel: Language switch failed - ${result.message}")
+                    _uiState.update { it.copy(isSwitchingLanguage = false, switchingLanguageLabel = null) }
+                    _effects.send(SummariserUiEffect.ShowMessage("Couldn't load $label: ${result.message}"))
+                }
+                is Result.Loading -> {
+                    Logger.logV("SummariserViewModel: Language switch still in progress")
+                    _uiState.update { it.copy(isSwitchingLanguage = false, switchingLanguageLabel = null) }
+                }
+            }
+        }
+    }
+
+    /**
+     * Banner text for a download that fell back to another language, or null when the requested one was found.
+     *
+     * @param result The downloaded transcript
+     * @param requestedLanguage English name of the requested language, or null for auto-generated captions
+     */
+    private fun noticeFor(result: SubtitleResult, requestedLanguage: String?): String? =
+        if (result.requestedLanguageMatched) null else languageUnavailableNotice(requestedLanguage, result)
 
     /**
      * Navigate to the Prompt Editor screen
