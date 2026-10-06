@@ -15,11 +15,27 @@ interface PromptDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertPrompt(prompt: PromptEntity)
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertPrompts(prompts: List<PromptEntity>)
+
     @Update
     suspend fun updatePrompt(prompt: PromptEntity)
 
     @Query("DELETE FROM prompts WHERE id = :id")
     suspend fun deletePrompt(id: String)
+
+    @Query("DELETE FROM prompts")
+    suspend fun deleteAllPrompts()
+
+    /**
+     * Swap every stored prompt for the given ones in one transaction, so a crash half way
+     * leaves the old prompts untouched instead of an empty table
+     */
+    @Transaction
+    suspend fun replaceAllPrompts(prompts: List<PromptEntity>) {
+        deleteAllPrompts()
+        insertPrompts(prompts)
+    }
 
     @Query("SELECT COUNT(*) FROM prompts")
     suspend fun getPromptCount(): Int

@@ -34,6 +34,7 @@ import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.PlayCircle
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -98,6 +99,7 @@ private const val SAMPLE_VIDEO_URL = "https://www.youtube.com/watch?v=arj7oStGLk
  * @param onNavigateToSummariser Callback for navigating to Summariser screen
  * @param onNavigateToVersionInput Callback for opening the client version fix screen
  * @param onNavigateToLanguageSettings Callback for opening the language settings page
+ * @param onNavigateToSettings Callback for opening the Settings screen from the top bar
  * @param onTrySampleVideo Callback for opening the transcript of the sample video, given its URL
  * @param viewModel HomeViewModel injected via Hilt
  */
@@ -109,6 +111,7 @@ fun HomeScreen(
     onNavigateToSummariser: (videoId: String) -> Unit = {},
     onNavigateToVersionInput: () -> Unit = {},
     onNavigateToLanguageSettings: () -> Unit = {},
+    onNavigateToSettings: () -> Unit = {},
     onTrySampleVideo: (url: String) -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel()
 ) {
@@ -152,9 +155,18 @@ fun HomeScreen(
         topBar = {
             TopAppBar(
                 title = { Text("TranscriptAI", fontWeight = FontWeight.Bold) },
+                actions = {
+                    IconButton(onClick = onNavigateToSettings) {
+                        Icon(
+                            imageVector = Icons.Default.Settings,
+                            contentDescription = "Settings"
+                        )
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    actionIconContentColor = MaterialTheme.colorScheme.onPrimaryContainer
                 )
             )
         },

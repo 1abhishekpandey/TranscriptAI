@@ -39,4 +39,17 @@ interface PromptRepository {
      * @param timestamp The timestamp when the prompt was selected
      */
     suspend fun updateLastSelectedTimestamp(promptId: String, timestamp: Long)
+
+    /**
+     * Replace every saved prompt with the built-in default prompts.
+     * The swap is all or nothing, so the list is never left empty or half replaced.
+     * @return The restored default prompts, in the order they are meant to be offered (first is the one to select)
+     */
+    suspend fun resetToDefaultPrompts(): List<Prompt>
+
+    /**
+     * How many built-in default prompts the app ships with
+     * @return The number of default prompts
+     */
+    fun getDefaultPromptCount(): Int
 }

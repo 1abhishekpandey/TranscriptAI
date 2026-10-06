@@ -2,6 +2,7 @@ package com.abhishek.transcriptai.data.repository
 
 import com.abhishek.transcriptai.data.local.database.dao.PromptDao
 import com.abhishek.transcriptai.data.mapper.PromptMapper
+import com.abhishek.transcriptai.data.seed.DefaultPromptsProvider
 import com.abhishek.transcriptai.domain.model.Prompt
 import com.abhishek.transcriptai.domain.repository.PromptRepository
 import kotlinx.coroutines.flow.Flow
@@ -34,4 +35,12 @@ class PromptRepositoryImpl(
     override suspend fun updateLastSelectedTimestamp(promptId: String, timestamp: Long) {
         promptDao.updateLastSelectedTimestamp(promptId, timestamp)
     }
+
+    override suspend fun resetToDefaultPrompts(): List<Prompt> {
+        val defaults = DefaultPromptsProvider.getDefaultPrompts()
+        promptDao.replaceAllPrompts(defaults)
+        return PromptMapper.toDomainList(defaults)
+    }
+
+    override fun getDefaultPromptCount(): Int = DefaultPromptsProvider.getDefaultPrompts().size
 }

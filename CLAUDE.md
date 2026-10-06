@@ -45,7 +45,9 @@ Navigation is in `presentation/navigation/`.
 - **Summariser** (the transcript page): title, language switcher, search, prompt selector, share sheet.
 - **Prompt editor**: add and edit prompts.
 - **Language settings**: 40+ languages with search, opened from Home ("Other languages").
-- **Version input**: manual YouTube client version, shown when auto-probing fails.
+- **Version input**: manual YouTube client version, shown when auto-probing fails. Also opened from Settings.
+- **Settings**: opened from the gear icon on Home. An "AI prompts" row, the YouTube client version, and About.
+- **AI prompts**: opened from Settings. The AI prompt switch and saved prompts (select, edit, delete, add, reset to defaults).
 
 ## Key facts and gotchas
 

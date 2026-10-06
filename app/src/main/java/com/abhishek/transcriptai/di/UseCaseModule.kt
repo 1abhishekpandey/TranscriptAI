@@ -8,7 +8,9 @@ import com.abhishek.transcriptai.domain.usecase.config.UpdateSummariserConfigUse
 import com.abhishek.transcriptai.domain.usecase.prompt.DeletePromptUseCase
 import com.abhishek.transcriptai.domain.usecase.prompt.GetPromptByIdUseCase
 import com.abhishek.transcriptai.domain.usecase.prompt.GetPromptsUseCase
+import com.abhishek.transcriptai.domain.usecase.prompt.ResetPromptsUseCase
 import com.abhishek.transcriptai.domain.usecase.prompt.SavePromptUseCase
+import com.abhishek.transcriptai.domain.usecase.prompt.SelectPromptUseCase
 import com.abhishek.transcriptai.domain.usecase.prompt.ValidatePromptUseCase
 import com.abhishek.transcriptai.domain.usecase.subtitle.FormatSubtitleForCopyUseCase
 import com.abhishek.transcriptai.util.Logger
@@ -78,6 +80,34 @@ object UseCaseModule {
     ): DeletePromptUseCase {
         Logger.logD("UseCaseModule: Providing DeletePromptUseCase")
         return DeletePromptUseCase(repository)
+    }
+
+    /**
+     * Provides SelectPromptUseCase
+     * Use case for making a prompt the selected one
+     */
+    @Provides
+    @ViewModelScoped
+    fun provideSelectPromptUseCase(
+        promptRepository: PromptRepository,
+        configRepository: SummariserConfigRepository
+    ): SelectPromptUseCase {
+        Logger.logD("UseCaseModule: Providing SelectPromptUseCase")
+        return SelectPromptUseCase(promptRepository, configRepository)
+    }
+
+    /**
+     * Provides ResetPromptsUseCase
+     * Use case for replacing all prompts with the built-in defaults
+     */
+    @Provides
+    @ViewModelScoped
+    fun provideResetPromptsUseCase(
+        repository: PromptRepository,
+        selectPromptUseCase: SelectPromptUseCase
+    ): ResetPromptsUseCase {
+        Logger.logD("UseCaseModule: Providing ResetPromptsUseCase")
+        return ResetPromptsUseCase(repository, selectPromptUseCase)
     }
 
     /**

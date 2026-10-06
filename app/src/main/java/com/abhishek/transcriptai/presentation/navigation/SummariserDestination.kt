@@ -68,4 +68,16 @@ sealed class SummariserDestination(val route: String) {
      * Language Settings screen - pick a subtitle language other than auto-generated
      */
     object LanguageSettings : SummariserDestination("language_settings")
+
+    /**
+     * Settings screen - AI prompts entry, YouTube client version and app info
+     * Opened from the Home screen's top bar
+     */
+    object Settings : SummariserDestination("settings")
+
+    /**
+     * AI Prompts screen - the AI prompt switch and the saved prompts (select, edit, delete, add)
+     * Opened from the Settings screen
+     */
+    object AiPrompts : SummariserDestination("ai_prompts")
 }

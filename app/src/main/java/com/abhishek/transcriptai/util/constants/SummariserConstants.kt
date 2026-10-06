@@ -12,14 +12,6 @@ object SummariserConstants {
     const val MIN_PROMPT_LENGTH = 10
     const val MAX_PROMPT_LENGTH = 500
 
-    // Default prompts text
-    val DEFAULT_PROMPTS = listOf(
-        "Summarize the following transcript in bullet points:",
-        "Extract key insights from this video transcript:",
-        "Create a detailed summary with main topics:",
-        "Translate and summarize this transcript:"
-    )
-
     // UI messages
     const val MESSAGE_PROMPT_TOO_SHORT = "Prompt must be at least $MIN_PROMPT_LENGTH characters"
     const val MESSAGE_PROMPT_TOO_LONG = "Prompt must not exceed $MAX_PROMPT_LENGTH characters"

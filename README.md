@@ -31,6 +31,7 @@ Share a video from the YouTube app, and the app can forward its transcript strai
 
 - Turn on the AI summariser to put a prompt in front of the transcript, for example "Summarise this".
 - Pick from saved prompts, or add and edit your own.
+- **Settings**: manage AI prompts (including reset to defaults), YouTube client version, About.
 
 ### Share
 

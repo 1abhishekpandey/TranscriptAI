@@ -9,9 +9,11 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.abhishek.transcriptai.data.repository.SubtitleCacheRepository
+import com.abhishek.transcriptai.presentation.aiprompts.AiPromptsScreen
 import com.abhishek.transcriptai.presentation.home.HomeScreen
 import com.abhishek.transcriptai.presentation.languagesettings.LanguageSettingsScreen
 import com.abhishek.transcriptai.presentation.prompteditor.PromptEditorScreen
+import com.abhishek.transcriptai.presentation.settings.SettingsScreen
 import com.abhishek.transcriptai.presentation.versioninput.VersionInputScreen
 import com.abhishek.transcriptai.util.Logger
 
@@ -19,7 +21,7 @@ import com.abhishek.transcriptai.util.Logger
  * Navigation graph for the AI Summarizer feature
  *
  * Defines navigation routes and screen composables
- * Handles navigation between Home, Summariser, Prompt Editor, Version Input and Language Settings screens
+ * Handles navigation between Home, Summariser, Prompt Editor, Version Input, Language Settings, Settings and AI Prompts screens
  * Supports conditional routing based on auto-share preference
  *
  * @param navController The navigation controller for managing navigation
@@ -80,6 +82,10 @@ fun SummariserNavGraph(
                 onNavigateToLanguageSettings = {
                     Logger.logI("SummariserNavGraph: Navigating from Home to LanguageSettings")
                     navController.navigate(SummariserDestination.LanguageSettings.route)
+                },
+                onNavigateToSettings = {
+                    Logger.logI("SummariserNavGraph: Navigating from Home to Settings")
+                    navController.navigate(SummariserDestination.Settings.route)
                 },
                 onTrySampleVideo = { url ->
                     Logger.logI("SummariserNavGraph: Opening sample video from Home: $url")
@@ -165,6 +171,42 @@ fun SummariserNavGraph(
                 onNavigateBack = {
                     Logger.logI("SummariserNavGraph: Navigating back from LanguageSettings")
                     navController.popBackStack()
+                }
+            )
+        }
+
+        // Settings Screen - AI prompts entry, YouTube client version and app info
+        // The AI prompts and version screens open on top of it, so back returns here
+        composable(route = SummariserDestination.Settings.route) {
+            Logger.logV("SummariserNavGraph: Navigated to Settings screen")
+            SettingsScreen(
+                onNavigateBack = {
+                    Logger.logI("SummariserNavGraph: Navigating back from Settings")
+                    navController.popBackStack()
+                },
+                onNavigateToAiPrompts = {
+                    Logger.logI("SummariserNavGraph: Navigating from Settings to AiPrompts")
+                    navController.navigate(SummariserDestination.AiPrompts.route)
+                },
+                onNavigateToVersionInput = {
+                    Logger.logI("SummariserNavGraph: Navigating from Settings to VersionInput")
+                    navController.navigate(SummariserDestination.VersionInput.route)
+                }
+            )
+        }
+
+        // AI Prompts Screen - Switch, saved prompts and add/edit/delete
+        // The prompt editor opens on top of it, so back returns here
+        composable(route = SummariserDestination.AiPrompts.route) {
+            Logger.logV("SummariserNavGraph: Navigated to AiPrompts screen")
+            AiPromptsScreen(
+                onNavigateBack = {
+                    Logger.logI("SummariserNavGraph: Navigating back from AiPrompts")
+                    navController.popBackStack()
+                },
+                onNavigateToPromptEditor = { promptId ->
+                    Logger.logI("SummariserNavGraph: Navigating from AiPrompts to PromptEditor with promptId: $promptId")
+                    navController.navigate(SummariserDestination.PromptEditor.createRouteWithPromptId(promptId))
                 }
             )
         }
