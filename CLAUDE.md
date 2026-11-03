@@ -116,6 +116,7 @@ More: [Coding Standards](docs/coding-standards.md), [Architecture](docs/architec
 - [docs/logging.md](docs/logging.md): logging patterns
 - [docs/troubleshooting.md](docs/troubleshooting.md): common problems
 - [docs/youtube-innertube-api.md](docs/youtube-innertube-api.md): how the extension works
+- [docs/verify-download.md](docs/verify-download.md): how users verify a release APK (VirusTotal scan, SHA-256, signing certificate)
 - [app/CLAUDE.md](app/CLAUDE.md): app module notes
 - [extensions/youtubeSubtitleDownloader/CLAUDE.md](extensions/youtubeSubtitleDownloader/CLAUDE.md): extension notes
 
