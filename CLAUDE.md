@@ -4,7 +4,7 @@ Guidance for Claude Code when working in this repository.
 
 ## What this is
 
-**TranscriptAI** (app label "Transcript AI") is an Android app. It downloads a YouTube video's transcript, shows it, and sends it to ChatGPT or Claude, with an optional prompt in front.
+**TranscriptAI** (app label "Transcript AI") is an Android app. It downloads a YouTube video's transcript, shows it, and sends it to ChatGPT, Claude or DeepSeek, with an optional prompt in front.
 
 - Package: `com.abhishek.transcriptai`
 - Min SDK 25 | Target SDK 36
@@ -61,8 +61,9 @@ Navigation is in `presentation/navigation/`.
 
 ### Sharing
 
-- Share to ChatGPT or Claude: `ACTION_SEND` first, then clipboard + launch the app as a fallback.
-- Android 11+ needs the `<queries>` block in `AndroidManifest.xml` to detect the ChatGPT and Claude apps. Keep it.
+- Share to an AI app (ChatGPT, Claude, DeepSeek): `ACTION_SEND` first, then clipboard + launch the app as a fallback.
+- The supported AI apps are listed once, in `domain/model/ShareTarget.kt`. The share sheet and the auto-forward picker are built from that list. Adding an app = one entry there + its package in the manifest `<queries>`.
+- Android 11+ needs the `<queries>` block in `AndroidManifest.xml` to detect the AI apps. Keep it.
 - `MainActivity` handles `ACTION_VIEW` (YouTube links) and `ACTION_SEND` (YouTube share sheet).
 - Auto-share: a share from YouTube with the toggle on stores the URL in `SubtitleCacheRepository`, opens the Summariser in auto-download mode, shares to the chosen app, then closes the app.
 - `SubtitleCacheRepository` is an in-memory hand-off between screens. Nothing is persisted.

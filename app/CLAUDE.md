@@ -44,7 +44,8 @@ Paths are under `app/src/main/java/com/abhishek/transcriptai/`.
 
 ## Sharing and auto-share
 
-- `AIShareRepositoryImpl`: `ACTION_SEND` to the app, then clipboard + launch as a fallback. App-specific intent flags matter for ChatGPT and Claude.
+- `AIShareRepositoryImpl`: `ACTION_SEND` to the app, then clipboard + launch as a fallback. App-specific intent flags matter for ChatGPT and Claude; other apps get the default flags.
+- Supported AI apps: `ShareTarget.aiApps`. To add one, add a `ShareTarget` entry (its `id` is saved in preferences, so never change it) and its package in the manifest `<queries>`.
 - `FormatSubtitleForCopyUseCase` puts the selected prompt in front of the transcript when the AI summariser is on.
 - Auto-share flow: `MainActivity` extracts the YouTube URL from `ACTION_SEND`. `SummariserNavGraph` stores it in `SubtitleCacheRepository` and opens the Summariser in auto-download mode. `SummariserViewModel` downloads with the saved language, shares to the chosen app and finishes the activity. If the app is not installed it opens the share sheet.
 - `SubtitleCacheRepository` is in-memory only. Transcripts are lost on process death.
@@ -59,10 +60,10 @@ Paths are under `app/src/main/java/com/abhishek/transcriptai/`.
 
 ## Gotchas
 
-- Android 11+ package visibility: the `<queries>` block in `AndroidManifest.xml` is what lets the app see ChatGPT and Claude. Keep it when editing the manifest.
+- Android 11+ package visibility: the `<queries>` block in `AndroidManifest.xml` is what lets the app see the AI apps. Keep it when editing the manifest.
 - Deep links: `youtube.com/watch`, `m.youtube.com/watch` and `youtu.be` are handled by `MainActivity` (`singleTop`), so new links arrive in `onNewIntent`.
 - Logs use `Logger` (tag `TranscriptAI-Log`). View them with `adb logcat -s TranscriptAI-Log`.
-- ACTION_SEND support in ChatGPT and Claude is not officially documented. The clipboard fallback makes sure sharing always works.
+- ACTION_SEND support in the AI apps is not officially documented. The clipboard fallback makes sure sharing always works.
 - Hilt or KSP errors after a toolchain change: upgrade Kotlin, KSP, Hilt, Room and AGP together. See [Troubleshooting](../docs/troubleshooting.md).
 
 ## Documentation

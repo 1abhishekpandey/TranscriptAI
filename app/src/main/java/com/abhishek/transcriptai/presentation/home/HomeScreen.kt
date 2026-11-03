@@ -78,6 +78,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.abhishek.transcriptai.domain.model.ShareTarget
 import com.abhishek.transcriptai.domain.model.LanguageChoice
 import com.abhishek.transcriptai.domain.model.LanguageMode
 import com.abhishek.transcriptai.domain.model.SubtitleLanguages
@@ -286,7 +287,7 @@ private fun IntroHeader() {
             color = MaterialTheme.colorScheme.onSurface
         )
         Text(
-            text = "Paste a video link to read its subtitles, copy them, or send them to ChatGPT or Claude.",
+            text = "Paste a video link to read its subtitles, copy them, or send them to ChatGPT, Claude or DeepSeek.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -730,10 +731,7 @@ private fun OtherLanguagesRow(
 /**
  * Apps the auto-share option can send to, as saved id and display name
  */
-private val autoShareApps = listOf(
-    "chatgpt" to "ChatGPT",
-    "claude" to "Claude"
-)
+private val autoShareApps = ShareTarget.aiApps.map { it.id to it.displayName }
 
 /**
  * Auto-Share Toggle Bar
@@ -777,7 +775,7 @@ private fun AutoShareToggleBar(
                         fontWeight = FontWeight.SemiBold
                     )
                     Text(
-                        text = "Send a shared video's transcript straight to ChatGPT or Claude",
+                        text = "Send a shared video's transcript straight to an AI app",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

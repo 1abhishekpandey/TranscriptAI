@@ -1,7 +1,7 @@
 package com.abhishek.transcriptai.presentation.summariser
 
 import com.abhishek.transcriptai.domain.model.CaptionTrack
-import com.abhishek.transcriptai.presentation.summariser.components.ShareOption
+import com.abhishek.transcriptai.domain.model.ShareTarget
 
 /**
  * Sealed class representing all possible user events in the Summariser screen
@@ -27,9 +27,9 @@ sealed class SummariserUiEvent {
 
     /**
      * User selected a share option from the bottom sheet
-     * @param option The selected share option (CLIPBOARD, CHATGPT, or CLAUDE)
+     * @param target The selected target: the clipboard or one of the AI apps
      */
-    data class ShareOptionSelected(val option: ShareOption) : SummariserUiEvent()
+    data class ShareOptionSelected(val target: ShareTarget) : SummariserUiEvent()
 
     /**
      * Dismiss the share bottom sheet

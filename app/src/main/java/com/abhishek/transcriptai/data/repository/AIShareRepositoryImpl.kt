@@ -42,7 +42,7 @@ class AIShareRepositoryImpl(
                         Result.success(Unit)
                     }
 
-                    ShareTarget.CHATGPT, ShareTarget.CLAUDE -> {
+                    else -> {
                         // Check if app is installed
                         if (!isAppInstalled(target)) {
                             showToast("${target.displayName} is not installed")
@@ -148,7 +148,7 @@ class AIShareRepositoryImpl(
                         Log.d(TAG, "Using CLEAR_TOP flags for Claude")
                     }
                     else -> {
-                        // Default behavior
+                        // Default for other AI apps: start in a new task
                         addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                     }
                 }

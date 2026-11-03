@@ -17,7 +17,6 @@ import com.abhishek.transcriptai.domain.usecase.config.ToggleAiSummariserUseCase
 import com.abhishek.transcriptai.domain.usecase.config.UpdateSummariserConfigUseCase
 import com.abhishek.transcriptai.domain.usecase.prompt.GetPromptsUseCase
 import com.abhishek.transcriptai.domain.usecase.subtitle.FormatSubtitleForCopyUseCase
-import com.abhishek.transcriptai.presentation.summariser.components.ShareOption
 import com.abhishek.transcriptai.util.Logger
 import com.abhishek.transcriptai.util.constants.SummariserConstants
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -230,11 +229,7 @@ class SummariserViewModel @Inject constructor(
             val selectedApp = autoShareConfigRepository.getSelectedApp()
             Logger.logI("SummariserViewModel: Selected auto-share app: $selectedApp")
 
-            // Map selected app string to ShareTarget
-            val targetApp = when (selectedApp) {
-                "claude" -> ShareTarget.CLAUDE
-                else -> ShareTarget.CHATGPT // Default to ChatGPT for "chatgpt" or any other value
-            }
+            val targetApp = ShareTarget.aiAppFromId(selectedApp)
 
             // Check if selected app is installed
             val isAppInstalled = aiShareRepository.isAppInstalled(targetApp)
@@ -242,12 +237,7 @@ class SummariserViewModel @Inject constructor(
             if (isAppInstalled) {
                 // Auto-share to selected app
                 Logger.logI("SummariserViewModel: Auto-sharing to ${targetApp.displayName}")
-                val shareOption = when (targetApp) {
-                    ShareTarget.CLAUDE -> ShareOption.CLAUDE
-                    ShareTarget.CHATGPT -> ShareOption.CHATGPT
-                    else -> ShareOption.CHATGPT // Fallback (should never happen)
-                }
-                handleShareOption(shareOption)
+                handleShareOption(targetApp)
 
                 // Wait for share to complete, then close app
                 delay(500)
@@ -339,7 +329,7 @@ class SummariserViewModel @Inject constructor(
             is SummariserUiEvent.ToggleAiSummariser -> toggleAiSummariser(event.enabled)
             is SummariserUiEvent.SelectPrompt -> selectPrompt(event.promptId)
             is SummariserUiEvent.ShareButtonClicked -> showShareSheet()
-            is SummariserUiEvent.ShareOptionSelected -> handleShareOption(event.option)
+            is SummariserUiEvent.ShareOptionSelected -> handleShareOption(event.target)
             is SummariserUiEvent.DismissShareSheet -> dismissShareSheet()
             is SummariserUiEvent.NavigateToPromptEditor -> navigateToPromptEditor()
             is SummariserUiEvent.CopyTranscriptClicked -> copyTranscript()
@@ -415,12 +405,12 @@ class SummariserViewModel @Inject constructor(
     /**
      * Handle the selected share option from the bottom sheet
      *
-     * @param option The selected share option
+     * @param shareTarget The selected target: the clipboard or one of the AI apps
      */
-    private fun handleShareOption(option: ShareOption) {
-        Logger.logI("SummariserViewModel: Handling share option: $option")
+    private fun handleShareOption(shareTarget: ShareTarget) {
+        Logger.logI("SummariserViewModel: Handling share option: $shareTarget")
 
-        if (option == ShareOption.CLIPBOARD) {
+        if (shareTarget == ShareTarget.CLIPBOARD) {
             copyTranscript()
             dismissShareSheet()
             return
@@ -436,12 +426,6 @@ class SummariserViewModel @Inject constructor(
         viewModelScope.launch {
             val formattedText = formatSubtitleForCopyUseCase(subtitle)
             Logger.logI("SummariserViewModel: Formatted text length: ${formattedText.length}")
-
-            val shareTarget = when (option) {
-                ShareOption.CLIPBOARD -> ShareTarget.CLIPBOARD // Handled above; kept so the mapping stays exhaustive
-                ShareOption.CHATGPT -> ShareTarget.CHATGPT
-                ShareOption.CLAUDE -> ShareTarget.CLAUDE
-            }
 
             Logger.logD("SummariserViewModel: Sharing to ${shareTarget.displayName}")
             val result = aiShareRepository.shareToApp(formattedText, shareTarget)

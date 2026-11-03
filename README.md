@@ -1,6 +1,6 @@
 # TranscriptAI
 
-An Android app that gets the transcript of any YouTube video and sends it to ChatGPT or Claude with a prompt, in a few taps.
+An Android app that gets the transcript of any YouTube video and sends it to ChatGPT, Claude or DeepSeek with a prompt, in a few taps.
 
 Share a video from the YouTube app, and the app can forward its transcript straight to your AI app. No copy-pasting.
 
@@ -37,7 +37,7 @@ Share a video from the YouTube app, and the app can forward its transcript strai
 
 - Send to **ChatGPT** or **Claude**, or copy to the clipboard.
 - If the app does not accept shared text directly, the transcript is copied and the app opens, so you can paste it.
-- **Auto-forward**: when on, sharing a video from YouTube goes straight to ChatGPT or Claude with your prompt. You choose which app.
+- **Auto-forward**: when on, sharing a video from YouTube goes straight to ChatGPT, Claude or DeepSeek with your prompt. You choose which app.
 
 ### Keeps working
 
@@ -49,7 +49,7 @@ Share a video from the YouTube app, and the app can forward its transcript strai
 1. Open a video in the YouTube app and tap **Share → Transcript AI**. Or paste the link in the app.
 2. Pick a language if you do not want auto-generated captions.
 3. Read the transcript, or add a prompt.
-4. Tap the share button and choose ChatGPT, Claude or Copy.
+4. Tap the share button and choose ChatGPT, Claude, DeepSeek or Copy.
 
 ## Install
 

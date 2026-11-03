@@ -5,11 +5,12 @@
     <uses-permission android:name="android.permission.INTERNET" />
 
     <!-- Package visibility queries for Android 11+ (API 30+) -->
-    <!-- Required to detect and share to ChatGPT and Claude apps -->
+    <!-- Required to detect and share to the AI apps listed in ShareTarget -->
     <queries>
         <!-- Specific AI app packages -->
         <package android:name="com.openai.chatgpt" />
         <package android:name="com.anthropic.claude" />
+        <package android:name="com.deepseek.chat" />
 
         <!-- Query for apps that accept text sharing via ACTION_SEND -->
         <intent>

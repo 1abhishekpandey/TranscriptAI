@@ -24,26 +24,18 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.abhishek.transcriptai.domain.model.ShareTarget
 import com.abhishek.transcriptai.util.share.ShareHelper
-
-enum class ShareOption {
-    CLIPBOARD,
-    CHATGPT,
-    CLAUDE
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ShareBottomSheet(
     isAiEnabled: Boolean,
     onDismiss: () -> Unit,
-    onOptionSelected: (ShareOption) -> Unit
+    onOptionSelected: (ShareTarget) -> Unit
 ) {
     val context = LocalContext.current
     val sheetState = rememberModalBottomSheetState()
-
-    val isChatGptInstalled = ShareHelper.isAppInstalled(context, ShareHelper.CHATGPT_PACKAGE)
-    val isClaudeInstalled = ShareHelper.isAppInstalled(context, ShareHelper.CLAUDE_PACKAGE)
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -69,48 +61,32 @@ fun ShareBottomSheet(
                 subtitle = "Copy text to clipboard",
                 enabled = true,
                 onClick = {
-                    onOptionSelected(ShareOption.CLIPBOARD)
+                    onOptionSelected(ShareTarget.CLIPBOARD)
                     onDismiss()
                 }
             )
 
-            // Share to ChatGPT
-            val chatGptEnabled = isAiEnabled && isChatGptInstalled
-            ShareOptionItem(
-                icon = Icons.Default.Share,
-                title = "Share to ChatGPT",
-                subtitle = when {
-                    !isAiEnabled -> "Enable AI summariser to share"
-                    !isChatGptInstalled -> "ChatGPT app is not installed"
-                    else -> "Share text to ChatGPT app"
-                },
-                enabled = chatGptEnabled,
-                onClick = {
-                    if (chatGptEnabled) {
-                        onOptionSelected(ShareOption.CHATGPT)
-                        onDismiss()
+            // One row per supported AI app
+            ShareTarget.aiApps.forEach { app ->
+                val isInstalled = ShareHelper.isAppInstalled(context, app.packageName)
+                val enabled = isAiEnabled && isInstalled
+                ShareOptionItem(
+                    icon = Icons.Default.Share,
+                    title = "Share to ${app.displayName}",
+                    subtitle = when {
+                        !isAiEnabled -> "Enable AI summariser to share"
+                        !isInstalled -> "${app.displayName} app is not installed"
+                        else -> "Share text to ${app.displayName} app"
+                    },
+                    enabled = enabled,
+                    onClick = {
+                        if (enabled) {
+                            onOptionSelected(app)
+                            onDismiss()
+                        }
                     }
-                }
-            )
-
-            // Share to Claude
-            val claudeEnabled = isAiEnabled && isClaudeInstalled
-            ShareOptionItem(
-                icon = Icons.Default.Share,
-                title = "Share to Claude",
-                subtitle = when {
-                    !isAiEnabled -> "Enable AI summariser to share"
-                    !isClaudeInstalled -> "Claude app is not installed"
-                    else -> "Share text to Claude app"
-                },
-                enabled = claudeEnabled,
-                onClick = {
-                    if (claudeEnabled) {
-                        onOptionSelected(ShareOption.CLAUDE)
-                        onDismiss()
-                    }
-                }
-            )
+                )
+            }
         }
     }
 }

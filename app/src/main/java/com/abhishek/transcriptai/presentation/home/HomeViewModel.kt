@@ -6,6 +6,7 @@ import com.abhishek.transcriptai.data.repository.SubtitleCacheRepository
 import com.abhishek.transcriptai.domain.model.LanguageChoice
 import com.abhishek.transcriptai.domain.model.LanguageMode
 import com.abhishek.transcriptai.domain.model.Result
+import com.abhishek.transcriptai.domain.model.ShareTarget
 import com.abhishek.transcriptai.domain.repository.AutoShareConfigRepository
 import com.abhishek.transcriptai.domain.repository.LanguagePreferenceRepository
 import com.abhishek.transcriptai.domain.usecase.DownloadSubtitlesUseCase
@@ -57,8 +58,8 @@ class HomeViewModel @Inject constructor(
     private val _autoShareEnabled = MutableStateFlow(false)
     val autoShareEnabled: StateFlow<Boolean> = _autoShareEnabled.asStateFlow()
 
-    // Selected app for auto-sharing (default is ChatGPT)
-    private val _selectedApp = MutableStateFlow("chatgpt")
+    // Selected app id for auto-sharing
+    private val _selectedApp = MutableStateFlow(ShareTarget.DEFAULT_AI_APP.id)
     val selectedApp: StateFlow<String> = _selectedApp.asStateFlow()
 
     private var currentSubtitle: String = ""

@@ -1,6 +1,7 @@
 package com.abhishek.transcriptai.data.local
 
 import android.content.Context
+import com.abhishek.transcriptai.domain.model.ShareTarget
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -36,14 +37,15 @@ class AutoSharePreferences @Inject constructor(
     /**
      * Gets the selected app for auto-sharing.
      *
-     * @return app identifier ("chatgpt" or "claude"), defaults to "chatgpt"
+     * @return app id, a ShareTarget.id such as "chatgpt", "claude" or "deepseek", defaults to ShareTarget.DEFAULT_AI_APP
      */
-    fun getSelectedApp(): String = prefs.getString(KEY_SELECTED_APP, "chatgpt") ?: "chatgpt"
+    fun getSelectedApp(): String =
+        prefs.getString(KEY_SELECTED_APP, ShareTarget.DEFAULT_AI_APP.id) ?: ShareTarget.DEFAULT_AI_APP.id
 
     /**
      * Sets the selected app for auto-sharing.
      *
-     * @param app app identifier ("chatgpt" or "claude")
+     * @param app app id, a ShareTarget.id such as "chatgpt", "claude" or "deepseek"
      */
     fun setSelectedApp(app: String) {
         prefs.edit().putString(KEY_SELECTED_APP, app).apply()
