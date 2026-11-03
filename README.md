@@ -57,7 +57,7 @@ Share a video from the YouTube app, and the app can forward its transcript strai
 2. Open it on your phone and allow installs from your browser or file manager if Android asks.
 
 <!-- virustotal:start -->
-**Virus scan:** pending.
+**Virus scan:** v2.1.0 was checked by 67 antivirus scanners on VirusTotal on 2026-11-03. 0 flagged it. [See the report](https://www.virustotal.com/gui/file/14f94b26c2dfcaec80d95947ac30cc4e94fb10e7be4d610fd4c11888187f3389).
 <!-- virustotal:end -->
 
 **Requires Android 7.1 or newer.**
