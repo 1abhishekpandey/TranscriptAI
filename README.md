@@ -1,5 +1,9 @@
 # TranscriptAI
 
+<!-- virustotal:start -->
+[![VirusTotal scan of v2.1.0](.github/badges/virustotal.svg)](https://www.virustotal.com/gui/file/14f94b26c2dfcaec80d95947ac30cc4e94fb10e7be4d610fd4c11888187f3389)
+<!-- virustotal:end -->
+
 An Android app that gets the transcript of any YouTube video and sends it to ChatGPT, Claude, DeepSeek or Gemini with a prompt, in a few taps.
 
 Share a video from the YouTube app, and the app can forward its transcript straight to your AI app. No copy-pasting.
@@ -55,10 +59,6 @@ Share a video from the YouTube app, and the app can forward its transcript strai
 
 1. Download the latest APK from the [Releases page](https://github.com/1abhishekpandey/TranscriptAI/releases/latest).
 2. Open it on your phone and allow installs from your browser or file manager if Android asks.
-
-<!-- virustotal:start -->
-**Virus scan:** v2.1.0 was checked by 67 antivirus scanners on VirusTotal on 2026-11-03. 0 flagged it. [See the report](https://www.virustotal.com/gui/file/14f94b26c2dfcaec80d95947ac30cc4e94fb10e7be4d610fd4c11888187f3389).
-<!-- virustotal:end -->
 
 **Requires Android 7.1 or newer.**
 

@@ -95,8 +95,8 @@ jobs:
             "https://x-access-token:${GH_TOKEN}@github.com/${REPO}.git" repo
           cd repo
 
-          DATE="$(date -u +%Y-%m-%d)"
-          LINE="**Virus scan:** $TAG was checked by $TOTAL antivirus scanners on VirusTotal on $DATE. $FLAGGED flagged it. [See the report](https://www.virustotal.com/gui/file/$SHA)."
+          bash .github/scripts/virustotal-badge.sh "$FLAGGED" "$TOTAL" .github/badges/virustotal.svg
+          LINE="[![VirusTotal scan of $TAG](.github/badges/virustotal.svg)](https://www.virustotal.com/gui/file/$SHA)"
 
           awk -v line="$LINE" '
             /<!-- virustotal:start -->/ { print; print line; skip = 1; next }
@@ -105,12 +105,13 @@ jobs:
           ' README.md > README.new
           mv README.new README.md
 
-          if git diff --quiet; then
+          git add README.md .github/badges/virustotal.svg
+          if git diff --cached --quiet; then
             echo "README already up to date"
             exit 0
           fi
 
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -am "docs(readme): add virustotal scan for $TAG"
+          git commit -m "docs(readme): add virustotal scan for $TAG"
           git push origin HEAD:main
