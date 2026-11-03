@@ -16,6 +16,7 @@ enum class ShareTarget(val id: String, val packageName: String, val displayName:
     CHATGPT("chatgpt", "com.openai.chatgpt", "ChatGPT"),
     CLAUDE("claude", "com.anthropic.claude", "Claude"),
     DEEPSEEK("deepseek", "com.deepseek.chat", "DeepSeek"),
+    GEMINI("gemini", "com.google.android.apps.bard", "Gemini"),
     CLIPBOARD("clipboard", "", "Clipboard"); // Special case for clipboard-only
 
     companion object {

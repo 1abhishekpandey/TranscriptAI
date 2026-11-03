@@ -25,14 +25,14 @@ interface AutoShareConfigRepository {
     /**
      * Gets the selected app for auto-sharing.
      *
-     * @return app id, a ShareTarget.id such as "chatgpt", "claude" or "deepseek"
+     * @return app id, a ShareTarget.id such as "chatgpt", "claude", "deepseek" or "gemini"
      */
     suspend fun getSelectedApp(): String
 
     /**
      * Sets the selected app for auto-sharing.
      *
-     * @param app app id, a ShareTarget.id such as "chatgpt", "claude" or "deepseek"
+     * @param app app id, a ShareTarget.id such as "chatgpt", "claude", "deepseek" or "gemini"
      */
     suspend fun setSelectedApp(app: String)
 }

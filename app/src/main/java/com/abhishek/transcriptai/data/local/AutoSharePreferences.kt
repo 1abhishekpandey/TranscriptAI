@@ -37,7 +37,7 @@ class AutoSharePreferences @Inject constructor(
     /**
      * Gets the selected app for auto-sharing.
      *
-     * @return app id, a ShareTarget.id such as "chatgpt", "claude" or "deepseek", defaults to ShareTarget.DEFAULT_AI_APP
+     * @return app id, a ShareTarget.id such as "chatgpt", "claude", "deepseek" or "gemini", defaults to ShareTarget.DEFAULT_AI_APP
      */
     fun getSelectedApp(): String =
         prefs.getString(KEY_SELECTED_APP, ShareTarget.DEFAULT_AI_APP.id) ?: ShareTarget.DEFAULT_AI_APP.id
@@ -45,7 +45,7 @@ class AutoSharePreferences @Inject constructor(
     /**
      * Sets the selected app for auto-sharing.
      *
-     * @param app app id, a ShareTarget.id such as "chatgpt", "claude" or "deepseek"
+     * @param app app id, a ShareTarget.id such as "chatgpt", "claude", "deepseek" or "gemini"
      */
     fun setSelectedApp(app: String) {
         prefs.edit().putString(KEY_SELECTED_APP, app).apply()

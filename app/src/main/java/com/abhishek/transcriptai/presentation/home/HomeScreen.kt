@@ -287,7 +287,7 @@ private fun IntroHeader() {
             color = MaterialTheme.colorScheme.onSurface
         )
         Text(
-            text = "Paste a video link to read its subtitles, copy them, or send them to ChatGPT, Claude or DeepSeek.",
+            text = "Paste a video link to read its subtitles, copy them, or send them to ChatGPT, Claude, DeepSeek or Gemini.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -796,9 +796,15 @@ private fun AutoShareToggleBar(
                             shape = SegmentedButtonDefaults.itemShape(
                                 index = index,
                                 count = autoShareApps.size
-                            )
+                            ),
+                            // No check mark: with four apps the label needs all the width
+                            icon = {}
                         ) {
-                            Text(appName)
+                            Text(
+                                text = appName,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
                         }
                     }
                 }

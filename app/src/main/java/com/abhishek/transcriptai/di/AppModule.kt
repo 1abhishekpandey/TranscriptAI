@@ -178,7 +178,7 @@ object AppModule {
 
     /**
      * Provides AIShareRepository implementation
-     * Handles sharing content to AI applications (ChatGPT, Claude, DeepSeek)
+     * Handles sharing content to AI applications (ChatGPT, Claude, DeepSeek, Gemini)
      */
     @Provides
     @Singleton
