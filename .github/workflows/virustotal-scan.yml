@@ -43,31 +43,50 @@ jobs:
       - name: Scan on VirusTotal
         run: |
           set -euo pipefail
-          ANALYSIS_ID="$(curl -sS --fail-with-body \
-            -H "x-apikey: $VT_API_KEY" \
-            -F "file=@$APK" \
-            https://www.virustotal.com/api/v3/files | jq -r '.data.id')"
+          VT=https://www.virustotal.com/api/v3
 
-          # The free key allows 4 requests a minute, so check every 30 seconds.
-          for _ in $(seq 1 80); do
-            sleep 30
-            curl -sS --fail-with-body -H "x-apikey: $VT_API_KEY" \
-              "https://www.virustotal.com/api/v3/analyses/$ANALYSIS_ID" > result.json
-            STATUS="$(jq -r '.data.attributes.status' result.json)"
-            echo "status: $STATUS"
-            [ "$STATUS" = "completed" ] && break
-          done
-          [ "$STATUS" = "completed" ] || { echo "Scan did not finish in time"; exit 1; }
+          # Writes the file's report to report.json. Succeeds only once
+          # VirusTotal has finished scanning the file.
+          fetch_report() {
+            curl -sS -H "x-apikey: $VT_API_KEY" "$VT/files/$SHA" > report.json
+            jq -e '(.data.attributes.last_analysis_results // {}) | length > 0' \
+              report.json > /dev/null
+          }
 
-          FLAGGED="$(jq '.data.attributes.stats | .malicious + .suspicious' result.json)"
-          TOTAL="$(jq '.data.attributes.stats | .malicious + .suspicious + .undetected + .harmless' result.json)"
+          # A file VirusTotal already scanned keeps its report. Uploading the
+          # same file again returns an analysis id that cannot be looked up.
+          if fetch_report; then
+            echo "VirusTotal already has a report for this file"
+          else
+            ANALYSIS_ID="$(curl -sS --fail-with-body \
+              -H "x-apikey: $VT_API_KEY" \
+              -F "file=@$APK" \
+              "$VT/files" | jq -r '.data.id')"
+
+            # The free key allows 4 requests a minute, so check every 30 seconds.
+            DONE=false
+            for _ in $(seq 1 80); do
+              sleep 30
+              STATUS="$(curl -sS -H "x-apikey: $VT_API_KEY" \
+                "$VT/analyses/$ANALYSIS_ID" | jq -r '.data.attributes.status // "unknown"')"
+              echo "status: $STATUS"
+              if [ "$STATUS" = "completed" ] && fetch_report; then
+                DONE=true
+                break
+              fi
+            done
+            [ "$DONE" = true ] || { echo "Scan did not finish in time"; exit 1; }
+          fi
+
+          FLAGGED="$(jq '.data.attributes.last_analysis_stats | .malicious + .suspicious' report.json)"
+          TOTAL="$(jq '.data.attributes.last_analysis_stats | .malicious + .suspicious + .undetected + .harmless' report.json)"
           echo "FLAGGED=$FLAGGED" >> "$GITHUB_ENV"
           echo "TOTAL=$TOTAL" >> "$GITHUB_ENV"
 
           echo "Result: $FLAGGED of $TOTAL scanners flagged it"
-          jq -r '.data.attributes.results[]
+          jq -r '.data.attributes.last_analysis_results[]
             | select(.category == "malicious" or .category == "suspicious")
-            | "  - \(.engine_name): \(.result)"' result.json
+            | "  - \(.engine_name): \(.result)"' report.json
 
       - name: Write the result into the README
         run: |
