@@ -1,8 +1,9 @@
 name: VirusTotal scan
 
-# Scans the APK of a published release on VirusTotal and writes the result
-# into the README. Uses only GitHub's own runner tools (git, gh, curl, jq)
-# and the VirusTotal API: no third-party actions, no other services.
+# Scans the APK of a published release on VirusTotal and shows the result
+# for the latest release as a badge in the README. Uses only GitHub's own
+# runner tools (git, gh, curl, jq) and the VirusTotal API: no third-party
+# actions, no other services.
 
 on:
   release:
@@ -95,7 +96,15 @@ jobs:
             "https://x-access-token:${GH_TOKEN}@github.com/${REPO}.git" repo
           cd repo
 
-          bash .github/scripts/virustotal-badge.sh "$FLAGGED" "$TOTAL" .github/badges/virustotal.svg
+          # The badge always shows the latest release. Scanning an older tag
+          # or a pre-release leaves it alone.
+          LATEST="$(gh release view -R "$REPO" --json tagName -q .tagName)"
+          if [ "$TAG" != "$LATEST" ]; then
+            echo "$TAG is not the latest release ($LATEST), so the badge stays as it is"
+            exit 0
+          fi
+
+          bash .github/scripts/virustotal-badge.sh "$TAG" "$FLAGGED" "$TOTAL" .github/badges/virustotal.svg
           LINE="[![VirusTotal scan of $TAG](.github/badges/virustotal.svg)](https://www.virustotal.com/gui/file/$SHA)"
 
           awk -v line="$LINE" '

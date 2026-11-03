@@ -1,13 +1,14 @@
 #!/usr/bin/env bash
 # Draws the VirusTotal README badge as a plain SVG, so no badge service is needed.
-# Usage: virustotal-badge.sh <flagged> <total> <output.svg>
+# Usage: virustotal-badge.sh <tag> <flagged> <total> <output.svg>
 set -euo pipefail
 
-FLAGGED="$1"
-TOTAL="$2"
-OUT="$3"
+TAG="$1"
+FLAGGED="$2"
+TOTAL="$3"
+OUT="$4"
 
-LABEL="VirusTotal"
+LABEL="VirusTotal $TAG"
 if [ "$FLAGGED" -eq 0 ]; then
   VALUE="clean $FLAGGED/$TOTAL"
   COLOR="#2ea44f"
