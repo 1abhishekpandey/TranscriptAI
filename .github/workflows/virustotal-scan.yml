@@ -1,0 +1,97 @@
+name: VirusTotal scan
+
+# Scans the APK of a published release on VirusTotal and writes the result
+# into the README. Uses only GitHub's own runner tools (git, gh, curl, jq)
+# and the VirusTotal API: no third-party actions, no other services.
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to scan, e.g. v2.1.0"
+        required: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: virustotal-scan
+  cancel-in-progress: false
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      VT_API_KEY: ${{ secrets.VIRUSTOTAL_API_KEY }}
+      REPO: ${{ github.repository }}
+      TAG: ${{ github.event.release.tag_name || inputs.tag }}
+    steps:
+      - name: Download the release APK
+        run: |
+          set -euo pipefail
+          APK="TranscriptAI-$TAG.apk"
+          gh release download "$TAG" -R "$REPO" -p "$APK" -D apk
+          SHA="$(sha256sum "apk/$APK" | awk '{print $1}')"
+          echo "APK=apk/$APK" >> "$GITHUB_ENV"
+          echo "SHA=$SHA" >> "$GITHUB_ENV"
+          echo "Scanning $APK ($SHA)"
+
+      - name: Scan on VirusTotal
+        run: |
+          set -euo pipefail
+          ANALYSIS_ID="$(curl -sS --fail-with-body \
+            -H "x-apikey: $VT_API_KEY" \
+            -F "file=@$APK" \
+            https://www.virustotal.com/api/v3/files | jq -r '.data.id')"
+
+          # The free key allows 4 requests a minute, so check every 30 seconds.
+          for _ in $(seq 1 80); do
+            sleep 30
+            curl -sS --fail-with-body -H "x-apikey: $VT_API_KEY" \
+              "https://www.virustotal.com/api/v3/analyses/$ANALYSIS_ID" > result.json
+            STATUS="$(jq -r '.data.attributes.status' result.json)"
+            echo "status: $STATUS"
+            [ "$STATUS" = "completed" ] && break
+          done
+          [ "$STATUS" = "completed" ] || { echo "Scan did not finish in time"; exit 1; }
+
+          FLAGGED="$(jq '.data.attributes.stats | .malicious + .suspicious' result.json)"
+          TOTAL="$(jq '.data.attributes.stats | .malicious + .suspicious + .undetected + .harmless' result.json)"
+          echo "FLAGGED=$FLAGGED" >> "$GITHUB_ENV"
+          echo "TOTAL=$TOTAL" >> "$GITHUB_ENV"
+
+          echo "Result: $FLAGGED of $TOTAL scanners flagged it"
+          jq -r '.data.attributes.results[]
+            | select(.category == "malicious" or .category == "suspicious")
+            | "  - \(.engine_name): \(.result)"' result.json
+
+      - name: Write the result into the README
+        run: |
+          set -euo pipefail
+          git clone --depth 1 \
+            "https://x-access-token:${GH_TOKEN}@github.com/${REPO}.git" repo
+          cd repo
+
+          DATE="$(date -u +%Y-%m-%d)"
+          LINE="**Virus scan:** $TAG was checked by $TOTAL antivirus scanners on VirusTotal on $DATE. $FLAGGED flagged it. [See the report](https://www.virustotal.com/gui/file/$SHA)."
+
+          awk -v line="$LINE" '
+            /<!-- virustotal:start -->/ { print; print line; skip = 1; next }
+            /<!-- virustotal:end -->/   { skip = 0 }
+            !skip
+          ' README.md > README.new
+          mv README.new README.md
+
+          if git diff --quiet; then
+            echo "README already up to date"
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -am "docs(readme): add virustotal scan for $TAG"
+          git push origin HEAD:main

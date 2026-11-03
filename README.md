@@ -56,6 +56,10 @@ Share a video from the YouTube app, and the app can forward its transcript strai
 1. Download the latest APK from the [Releases page](https://github.com/1abhishekpandey/TranscriptAI/releases/latest).
 2. Open it on your phone and allow installs from your browser or file manager if Android asks.
 
+<!-- virustotal:start -->
+**Virus scan:** pending.
+<!-- virustotal:end -->
+
 **Requires Android 7.1 or newer.**
 
 ### Updating from version 1.3 or earlier
