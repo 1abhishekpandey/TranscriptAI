@@ -79,6 +79,25 @@ jobs:
             [ "$DONE" = true ] || { echo "Scan did not finish in time"; exit 1; }
           fi
 
+          # Scanners that timed out gave no verdict and would shrink the count.
+          # Ask for one fresh scan and keep whatever that gives.
+          TIMEOUTS="$(jq '.data.attributes.last_analysis_stats.timeout // 0' report.json)"
+          if [ "$TIMEOUTS" -gt 0 ]; then
+            echo "$TIMEOUTS scanners timed out, asking VirusTotal to scan again"
+            ANALYSIS_ID="$(curl -sS --fail-with-body -X POST \
+              -H "x-apikey: $VT_API_KEY" \
+              "$VT/files/$SHA/analyse" | jq -r '.data.id')"
+            for _ in $(seq 1 40); do
+              sleep 30
+              STATUS="$(curl -sS -H "x-apikey: $VT_API_KEY" \
+                "$VT/analyses/$ANALYSIS_ID" | jq -r '.data.attributes.status // "unknown"')"
+              echo "status: $STATUS"
+              [ "$STATUS" = "completed" ] && break
+            done
+            sleep 10
+            fetch_report
+          fi
+
           FLAGGED="$(jq '.data.attributes.last_analysis_stats | .malicious + .suspicious' report.json)"
           TOTAL="$(jq '.data.attributes.last_analysis_stats | .malicious + .suspicious + .undetected + .harmless' report.json)"
           echo "FLAGGED=$FLAGGED" >> "$GITHUB_ENV"
