@@ -2,12 +2,14 @@ package com.abhishek.youtubesubtitledownloader.data.parser
 
 import com.abhishek.youtubesubtitledownloader.data.remote.SubtitleSegmentDto
 import com.abhishek.youtubesubtitledownloader.util.SubtitleLogger
+import com.abhishek.youtubesubtitledownloader.domain.model.CaptionLine
 import org.xmlpull.v1.XmlPullParser
 import org.xmlpull.v1.XmlPullParserFactory
+import kotlin.math.roundToLong
 
 /**
  * Parser for YouTube transcript XML
- * Converts XML format to plain text without timestamps
+ * Converts XML format to plain text, and to caption lines that keep their start times
  */
 internal object XmlSubtitleParser {
 
@@ -168,6 +170,16 @@ internal object XmlSubtitleParser {
         SubtitleLogger.d("Generated plain text: ${plainText.length} characters")
         return plainText
     }
+
+    /**
+     * Convert segments to caption lines with their start times, dropping empty ones
+     * @param segments List of subtitle segments
+     * @return One line per non-empty segment, in the order YouTube sent them
+     */
+    fun toCaptionLines(segments: List<SubtitleSegmentDto>): List<CaptionLine> =
+        segments
+            .filter { it.text.isNotBlank() }
+            .map { CaptionLine(startMillis = (it.startTime * 1000).roundToLong(), text = it.text) }
 
     /**
      * Decode HTML entities in subtitle text

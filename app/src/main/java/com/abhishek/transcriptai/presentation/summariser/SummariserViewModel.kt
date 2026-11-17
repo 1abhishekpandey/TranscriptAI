@@ -10,6 +10,7 @@ import com.abhishek.transcriptai.domain.model.SubtitleResult
 import com.abhishek.transcriptai.domain.repository.AIShareRepository
 import com.abhishek.transcriptai.domain.repository.AutoShareConfigRepository
 import com.abhishek.transcriptai.domain.repository.LanguagePreferenceRepository
+import com.abhishek.transcriptai.domain.repository.TranscriptDisplayRepository
 import com.abhishek.transcriptai.domain.repository.PromptRepository
 import com.abhishek.transcriptai.domain.usecase.DownloadSubtitlesUseCase
 import com.abhishek.transcriptai.domain.usecase.config.GetSummariserConfigUseCase
@@ -41,6 +42,7 @@ import javax.inject.Inject
  * @property aiShareRepository Repository for sharing content to AI applications
  * @property autoShareConfigRepository Repository for managing auto-share configuration
  * @property languagePreferenceRepository Repository for the saved language choice (read only here)
+ * @property transcriptDisplayRepository Repository for whether the transcript keeps its time codes
  */
 @HiltViewModel
 class SummariserViewModel @Inject constructor(
@@ -54,7 +56,8 @@ class SummariserViewModel @Inject constructor(
     private val formatSubtitleForCopyUseCase: FormatSubtitleForCopyUseCase,
     private val aiShareRepository: AIShareRepository,
     private val autoShareConfigRepository: AutoShareConfigRepository,
-    private val languagePreferenceRepository: LanguagePreferenceRepository
+    private val languagePreferenceRepository: LanguagePreferenceRepository,
+    private val transcriptDisplayRepository: TranscriptDisplayRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SummariserUiState())
@@ -75,6 +78,7 @@ class SummariserViewModel @Inject constructor(
         Logger.logD("SummariserViewModel: Initializing")
         observePrompts()
         observeConfig()
+        observeShowTimestamps()
     }
 
     /**
@@ -292,6 +296,27 @@ class SummariserViewModel @Inject constructor(
     }
 
     /**
+     * Follow the time codes switch from Settings, so the transcript on screen matches what is sent
+     */
+    private fun observeShowTimestamps() {
+        viewModelScope.launch {
+            transcriptDisplayRepository.showTimestamps()
+                .catch { e -> Logger.logE("SummariserViewModel: Error loading the time codes setting", e) }
+                .collect { show -> _uiState.update { it.copy(showTimestamps = show) } }
+        }
+    }
+
+    /**
+     * The transcript as it is sent: with time codes when the switch in Settings is on.
+     * Read from the saved setting so auto-share, which can run before the screen state catches up, gets it right.
+     */
+    private suspend fun transcriptToSend(): String? {
+        val subtitle = _uiState.value.subtitleResult ?: return null
+        val showTimestamps = transcriptDisplayRepository.showTimestamps().first()
+        return subtitle.textFor(showTimestamps)
+    }
+
+    /**
      * Observe summariser configuration and update UI state
      */
     private fun observeConfig() {
@@ -416,14 +441,13 @@ class SummariserViewModel @Inject constructor(
             return
         }
 
-        val subtitle = _uiState.value.subtitleResult?.text
-
-        if (subtitle.isNullOrEmpty()) {
-            Logger.logW("SummariserViewModel: Cannot share - subtitle is empty")
-            return
-        }
-
         viewModelScope.launch {
+            val subtitle = transcriptToSend()
+            if (subtitle.isNullOrEmpty()) {
+                Logger.logW("SummariserViewModel: Cannot share - subtitle is empty")
+                return@launch
+            }
+
             val formattedText = formatSubtitleForCopyUseCase(subtitle)
             Logger.logI("SummariserViewModel: Formatted text length: ${formattedText.length}")
 
@@ -445,15 +469,14 @@ class SummariserViewModel @Inject constructor(
      * The screen writes to the clipboard and confirms in the snackbar.
      */
     private fun copyTranscript() {
-        val subtitle = _uiState.value.subtitleResult?.text
-
-        if (subtitle.isNullOrBlank()) {
-            Logger.logW("SummariserViewModel: Cannot copy - subtitle is empty")
-            _effects.trySend(SummariserUiEffect.ShowMessage("Nothing to copy"))
-            return
-        }
-
         viewModelScope.launch {
+            val subtitle = transcriptToSend()
+            if (subtitle.isNullOrBlank()) {
+                Logger.logW("SummariserViewModel: Cannot copy - subtitle is empty")
+                _effects.send(SummariserUiEffect.ShowMessage("Nothing to copy"))
+                return@launch
+            }
+
             val formattedText = formatSubtitleForCopyUseCase(subtitle)
             Logger.logI("SummariserViewModel: Copying ${formattedText.length} characters")
             val confirmation = if (formattedText != subtitle) "Copied with AI prompt" else "Transcript copied"

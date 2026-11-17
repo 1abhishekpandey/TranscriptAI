@@ -3,6 +3,7 @@ package com.abhishek.transcriptai.di
 import android.content.Context
 import com.abhishek.transcriptai.data.local.AutoSharePreferences
 import com.abhishek.transcriptai.data.local.LanguagePreferences
+import com.abhishek.transcriptai.data.local.TranscriptPreferences
 import com.abhishek.transcriptai.data.local.database.AppDatabase
 import com.abhishek.transcriptai.data.local.database.dao.PromptDao
 import com.abhishek.transcriptai.data.local.preferences.SummariserPreferences
@@ -13,12 +14,14 @@ import com.abhishek.transcriptai.data.repository.PromptRepositoryImpl
 import com.abhishek.transcriptai.data.repository.SubtitleCacheRepository
 import com.abhishek.transcriptai.data.repository.SubtitleRepositoryImpl
 import com.abhishek.transcriptai.data.repository.SummariserConfigRepositoryImpl
+import com.abhishek.transcriptai.data.repository.TranscriptDisplayRepositoryImpl
 import com.abhishek.transcriptai.domain.repository.AIShareRepository
 import com.abhishek.transcriptai.domain.repository.AutoShareConfigRepository
 import com.abhishek.transcriptai.domain.repository.LanguagePreferenceRepository
 import com.abhishek.transcriptai.domain.repository.PromptRepository
 import com.abhishek.transcriptai.domain.repository.SubtitleRepository
 import com.abhishek.transcriptai.domain.repository.SummariserConfigRepository
+import com.abhishek.transcriptai.domain.repository.TranscriptDisplayRepository
 import com.abhishek.transcriptai.util.Logger
 import com.abhishek.youtubesubtitledownloader.YouTubeSubtitleDownloader
 import com.abhishek.youtubesubtitledownloader.util.LogLevel
@@ -163,6 +166,31 @@ object AppModule {
     ): SummariserConfigRepository {
         Logger.logD("AppModule: Providing SummariserConfigRepository")
         return SummariserConfigRepositoryImpl(preferences)
+    }
+
+    /**
+     * Provides TranscriptPreferences instance
+     * Stores whether the transcript keeps its time codes
+     */
+    @Provides
+    @Singleton
+    fun provideTranscriptPreferences(
+        @ApplicationContext context: Context
+    ): TranscriptPreferences {
+        Logger.logD("AppModule: Providing TranscriptPreferences")
+        return TranscriptPreferences(context)
+    }
+
+    /**
+     * Provides TranscriptDisplayRepository implementation
+     */
+    @Provides
+    @Singleton
+    fun provideTranscriptDisplayRepository(
+        preferences: TranscriptPreferences
+    ): TranscriptDisplayRepository {
+        Logger.logD("AppModule: Providing TranscriptDisplayRepository")
+        return TranscriptDisplayRepositoryImpl(preferences)
     }
 
     /**

@@ -46,7 +46,7 @@ Navigation is in `presentation/navigation/`.
 - **Prompt editor**: add and edit prompts.
 - **Language settings**: 40+ languages with search, opened from Home ("Other languages").
 - **Version input**: manual YouTube client version, shown when auto-probing fails. Also opened from Settings.
-- **Settings**: opened from the gear icon on Home. An "AI prompts" row, the YouTube client version, and About.
+- **Settings**: opened from the gear icon on Home. An "AI prompts" row, a "Timestamps" switch, the YouTube client version, and About.
 - **AI prompts**: opened from Settings. The AI prompt switch and saved prompts (select, edit, delete, add, reset to defaults).
 
 ## Key facts and gotchas
@@ -71,7 +71,8 @@ Navigation is in `presentation/navigation/`.
 ### Storage
 
 - Prompts: Room (`AppDatabase`). Default prompts are seeded.
-- App settings (AI toggle, selected prompt, auto-share, language): SharedPreferences.
+- App settings (AI toggle, selected prompt, auto-share, language, timestamps): SharedPreferences.
+- The timestamps switch has its own store (`TranscriptPreferences`), apart from the AI prompt settings, which are saved as one block and would overwrite it.
 
 ### YouTube client version
 

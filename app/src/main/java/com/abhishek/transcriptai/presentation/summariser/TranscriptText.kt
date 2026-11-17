@@ -55,8 +55,8 @@ internal fun TranscriptParagraph.textIn(fullText: String): String =
 /**
  * Cuts the transcript into paragraphs without losing or reordering any character.
  *
- * A blank line always ends a paragraph. Otherwise a paragraph ends at the last sentence ending,
- * or failing that the last whitespace, before [MAX_PARAGRAPH_LENGTH] characters. Text with no
+ * A blank line always ends a paragraph. Otherwise a paragraph ends at the last line break, then the
+ * last sentence ending, or failing that the last whitespace, before [MAX_PARAGRAPH_LENGTH] characters. Text with no
  * whitespace at all (e.g., Chinese or Japanese) is cut at the length limit.
  */
 internal fun splitIntoParagraphs(text: String): List<TranscriptParagraph> {
@@ -81,6 +81,10 @@ private fun findParagraphEnd(text: String, start: Int): Int {
     if (limit == text.length) return limit
 
     val earliest = start + MIN_PARAGRAPH_LENGTH
+    // Text with time codes has one caption per line; a cut there never splits a line from its time
+    for (i in limit downTo earliest) {
+        if (text[i] == '\n') return i
+    }
     for (i in limit downTo earliest) {
         val previous = text[i - 1]
         val endsSentence = previous in CJK_SENTENCE_ENDINGS ||

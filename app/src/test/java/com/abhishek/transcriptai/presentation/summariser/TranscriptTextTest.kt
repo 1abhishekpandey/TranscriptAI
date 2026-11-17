@@ -100,4 +100,16 @@ class TranscriptTextTest {
         assertEquals(2 until 6, matches[0].range)
         assertEquals(8 until 10, matches[1].range)
     }
+
+    @Test
+    fun splitIntoParagraphs_cutsTimestampedTextOnlyBetweenLines() {
+        val lines = (1..200).map { "${it / 60}:${(it % 60).toString().padStart(2, '0')} line number $it. More words follow here" }
+        val text = lines.joinToString("\n")
+
+        val paragraphs = splitIntoParagraphs(text)
+
+        assertTrue(paragraphs.size > 1)
+        val rebuilt = paragraphs.flatMap { it.textIn(text).split("\n") }
+        assertEquals(lines, rebuilt)
+    }
 }

@@ -72,7 +72,8 @@ class YouTubeSubtitleDownloader private constructor(context: Context) {
      *            - First available language in the list will be used
      *
      * @return SubtitleResult
-     *         - Success: Contains raw subtitle text (no timestamps) and language code
+     *         - Success: Contains raw subtitle text (no timestamps), the language code,
+     *           and the caption lines with their start times
      *         - Error: Contains error type, message, and optional throwable
      *         - Loading: Indicates operation in progress (rarely used in this sync API)
      *

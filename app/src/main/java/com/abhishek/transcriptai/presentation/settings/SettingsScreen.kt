@@ -8,6 +8,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -18,6 +19,7 @@ import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.PlayCircle
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -28,6 +30,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -41,6 +44,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -58,6 +62,7 @@ private const val SOURCE_CODE_URL = "https://github.com/1abhishekpandey/Transcri
  *
  * Top to bottom:
  * - AI prompts: one row with the on/off state and the selected prompt, opening the AI prompts screen
+ * - Timestamps: a switch that keeps each caption line's time code, on screen and in what is sent
  * - YouTube connection: the client version in use and a row to fix it
  * - About: app version, link to the source code, and a note that the app is not affiliated with YouTube
  *
@@ -132,6 +137,26 @@ fun SettingsScreen(
                         Logger.logI("SettingsScreen: Opening the AI prompts screen")
                         onNavigateToAiPrompts()
                     }
+                )
+            }
+
+            item {
+                ListItem(
+                    headlineContent = { Text("Timestamps") },
+                    supportingContent = {
+                        Text("Show the time of each line, as YouTube does. Also included when you copy or share.")
+                    },
+                    leadingContent = { Icon(Icons.Default.Schedule, contentDescription = null) },
+                    trailingContent = {
+                        Switch(checked = uiState.showTimestamps, onCheckedChange = null)
+                    },
+                    colors = settingsRowColors(),
+                    // The whole row is the switch, so a tap anywhere on it flips it
+                    modifier = Modifier.toggleable(
+                        value = uiState.showTimestamps,
+                        role = Role.Switch,
+                        onValueChange = viewModel::setShowTimestamps
+                    )
                 )
             }
 

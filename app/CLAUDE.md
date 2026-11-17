@@ -29,7 +29,7 @@ Paths are under `app/src/main/java/com/abhishek/transcriptai/`.
 - **Prompt editor**: create and edit prompts.
 - **Language settings**: 40+ languages, searchable, each in its own script. Home has a "Try a sample video" link that opens a TED talk with 50+ caption languages, without auto-forwarding.
 - **Version input**: enter a YouTube client version by hand when auto-probing fails. Also reachable from Settings.
-- **Settings**: an "AI prompts" row (on/off and the selected prompt), the YouTube client version with a link to Version input, and About (app version, source code link).
+- **Settings**: an "AI prompts" row (on/off and the selected prompt), a "Timestamps" switch (each caption line keeps its YouTube time code, on screen and in copy, share and auto-forward; off by default), the YouTube client version with a link to Version input, and About (app version, source code link).
 - **AI prompts**: the AI prompt switch and the saved prompts (tap to select, edit, delete; the last prompt cannot be deleted), Add prompt, and Reset to defaults (replaces every prompt with the built-in ones in one transaction and selects the first).
 
 ## Language choice

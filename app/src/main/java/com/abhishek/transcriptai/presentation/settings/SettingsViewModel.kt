@@ -2,6 +2,7 @@ package com.abhishek.transcriptai.presentation.settings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.abhishek.transcriptai.domain.repository.TranscriptDisplayRepository
 import com.abhishek.transcriptai.domain.usecase.config.GetSummariserConfigUseCase
 import com.abhishek.transcriptai.domain.usecase.prompt.GetPromptsUseCase
 import com.abhishek.transcriptai.domain.usecase.prompt.resolveSelectedPromptId
@@ -20,17 +21,19 @@ import javax.inject.Inject
 /**
  * ViewModel for the Settings screen
  * Keeps the summary line of the "AI prompts" row up to date, so it changes as soon as the AI prompts screen
- * changes a setting, and provides the YouTube client version.
+ * changes a setting, provides the YouTube client version, and holds the time codes switch.
  *
  * @property getPromptsUseCase Use case for retrieving the saved prompts
  * @property getSummariserConfigUseCase Use case for getting the AI prompt switch and the selection
  * @property youtubeSubtitleDownloader The YouTube subtitle downloader extension, source of the client version
+ * @property transcriptDisplayRepository Repository for whether the transcript keeps its time codes
  */
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val getPromptsUseCase: GetPromptsUseCase,
     private val getSummariserConfigUseCase: GetSummariserConfigUseCase,
-    private val youtubeSubtitleDownloader: YouTubeSubtitleDownloader
+    private val youtubeSubtitleDownloader: YouTubeSubtitleDownloader,
+    private val transcriptDisplayRepository: TranscriptDisplayRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(
@@ -41,6 +44,23 @@ class SettingsViewModel @Inject constructor(
     init {
         Logger.logD("SettingsViewModel: Initializing")
         observeAiPromptsSummary()
+        observeShowTimestamps()
+    }
+
+    /**
+     * Turn the time codes on or off for the transcript page, copy, share and auto-forward
+     */
+    fun setShowTimestamps(show: Boolean) {
+        Logger.logI("SettingsViewModel: Time codes ${if (show) "on" else "off"}")
+        viewModelScope.launch { transcriptDisplayRepository.setShowTimestamps(show) }
+    }
+
+    private fun observeShowTimestamps() {
+        viewModelScope.launch {
+            transcriptDisplayRepository.showTimestamps()
+                .catch { e -> Logger.logE("SettingsViewModel: Error loading the time codes setting", e) }
+                .collect { show -> _uiState.update { it.copy(showTimestamps = show) } }
+        }
     }
 
     /**

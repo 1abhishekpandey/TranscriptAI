@@ -19,6 +19,7 @@ import com.abhishek.transcriptai.domain.model.SubtitleResult
  * @property showLanguageSheet Whether to show the language picker sheet
  * @property languageNotice Message saying the requested language isn't available for the video;
  *           null when there is nothing to say or the user dismissed it
+ * @property showTimestamps Whether each caption line shows its time code, set in Settings
  */
 data class SummariserUiState(
     val subtitleResult: SubtitleResult? = null,
@@ -32,5 +33,6 @@ data class SummariserUiState(
     val isSwitchingLanguage: Boolean = false,
     val switchingLanguageLabel: String? = null,
     val showLanguageSheet: Boolean = false,
-    val languageNotice: String? = null
+    val languageNotice: String? = null,
+    val showTimestamps: Boolean = false
 )
