@@ -13,8 +13,8 @@ android {
         applicationId = "com.abhishek.transcriptai"
         minSdk = 25
         targetSdk = 36
-        versionCode = 7
-        versionName = "2.1.0"
+        versionCode = 8
+        versionName = "2.2.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
