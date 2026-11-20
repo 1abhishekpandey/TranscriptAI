@@ -1,7 +1,7 @@
 # TranscriptAI
 
 <!-- virustotal:start -->
-[![VirusTotal scan of v2.1.0](.github/badges/virustotal.svg)](https://www.virustotal.com/gui/file/14f94b26c2dfcaec80d95947ac30cc4e94fb10e7be4d610fd4c11888187f3389)
+[![VirusTotal scan of v2.2.0](.github/badges/virustotal.svg)](https://www.virustotal.com/gui/file/e074371c7c954318495507e952ed19253e905d87bf8930aa4269dd7d64b63b54)
 <!-- virustotal:end -->
 
 An Android app that gets the transcript of any YouTube video and sends it to ChatGPT, Claude, DeepSeek or Gemini with a prompt, in a few taps.
